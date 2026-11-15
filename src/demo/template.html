@@ -165,9 +165,10 @@ function parse(str){
   {let d=0;for(let i=0;i<s.length;i++){const ch=s[i];if(ch==="(")d++;else if(ch===")")d--;else if(ch==="."&&d===0&&/^\.\s+[A-ZÆØÅ]/.test(s.slice(i,i+3))){s=s.slice(0,i);break;}}}
   s=s.replace(/\.\s*$/,"");
   const out=[];let depth=0,buf="";
-  const push=()=>{const t=buf.trim();if(t)out.push(node(t));buf="";};
-  for(const ch of s){
+  const push=()=>{const t=buf.trim();buf="";if(!t)return; if(/^[\d.,\s]*%?$/.test(t)){ if(out.length&&/%/.test(t)&&!out[out.length-1].pct) out[out.length-1].pct=t.replace(/\s/g,""); return; } out.push(node(t));};
+  for(let i=0;i<s.length;i++){ const ch=s[i];
     if(ch==="("){depth++;buf+=ch;}else if(ch===")"){depth--;buf+=ch;}
+    else if(ch===","&&/\d/.test(s[i-1]||"")&&/\d/.test(s[i+1]||"")) buf+=ch;
     else if((ch===","||ch===";")&&depth===0)push(); else buf+=ch;
   }
   push(); return out;
@@ -219,10 +220,10 @@ function gentleState(a){
   a.tree.forEach(walk);
   return bad?"Nei":(ja?"Ja":"Nøytral");
 }
-const pHeart = p => { if(!S.skanSom) return false; const a=pRate(p); return a.overall==="Lav" && gentleState(a)==="Ja"; };
+const pHeart = p => { const a=pRate(p); return a.overall==="Lav" && gentleState(a)==="Ja"; };
 function ingK(i){ if(i.p){ const pp=prod(i.p), a=pRate(pp); return a.overall==="Lav"?gentleState(a):"Nei"; } return byName[i.r].k; }
 const NO_HEART_CATS = ["Godteri","Kaker","Snacks"];
-const rHeart = r => { if(!S.skanSom||r.noHeart||NO_HEART_CATS.includes(r.cat)||recRating(r)!=="Lav") return false; const ks=r.ing.map(ingK); return ks.every(k=>k!=="Nei") && ks.includes("Ja"); };
+const rHeart = r => { if(r.noHeart||NO_HEART_CATS.includes(r.cat)||recRating(r)!=="Lav") return false; const ks=r.ing.map(ingK); return ks.every(k=>k!=="Nei") && ks.includes("Ja"); };
 function recIngRating(i){ let r= i.p? pRate(prod(i.p)).overall : eff(byName[i.r]); if(i.ok&&r==="Middels") r="Lav"; return r; }
 const recRating = r => worst(r.ing.map(recIngRating));
 
@@ -321,7 +322,49 @@ const ART = (()=>{
         case "waffles": [[66,56],[94,56]].forEach(([x,y])=>{out.push(`<circle cx="${x}" cy="${y}" r="12" fill="#E7B65C" stroke="#C99540"/>`);for(let j=-1;j<=1;j++){out.push(`<path d="M${x-10} ${y+j*5} h20 M${x+j*5} ${y-10} v20" stroke="#C99540" stroke-width=".7"/>`);}}); break;
       }
     }
-    return `<svg viewBox="0 0 160 100" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="160" height="100" fill="${r.bg}"/>${base}${out.join("")}</svg>`;
+    return scene(r, base, out.join(""));
+  }
+  /* ---- food-photo style scene: table surface, light, shadows, props ---- */
+  const SURF = {Frokost:"oak",Bakst:"oak",Middag:"walnut",Lunsj:"linen",Mellommåltid:"linen",Snacks:"slate",Godteri:"slate",Kaker:"marble"};
+  function table(t,uid,R){
+    let o="";
+    if(t==="oak"||t==="walnut"){
+      const [c1,c2,c3] = t==="oak"? ["#C9A27A","#B88F66","#D8B48C"] : ["#6B4430","#5A3725","#7C5038"];
+      o+=`<rect width="160" height="100" fill="${c1}"/>`;
+      for(let x=0;x<160;x+=34){ o+=`<rect x="${x}" width="34" height="100" fill="${R()<.5?c2:c3}" opacity=".45"/><path d="M${x} 0V100" stroke="rgba(0,0,0,.18)" stroke-width=".8"/>`; }
+      for(let i=0;i<14;i++){ const y=R()*100,x=R()*160; o+=`<path d="M${x-30} ${y} q15 ${R()*4-2} 30 0 t30 0" stroke="rgba(0,0,0,.10)" stroke-width=".5" fill="none"/>`; }
+    } else if(t==="linen"){
+      o+=`<rect width="160" height="100" fill="#E9E3D8"/><rect width="160" height="100" filter="url(#${uid}n)" opacity=".18"/>`;
+      for(let x=0;x<160;x+=3) o+=`<path d="M${x} 0V100" stroke="rgba(120,100,80,.06)" stroke-width=".6"/>`;
+    } else if(t==="slate"){
+      o+=`<rect width="160" height="100" fill="#33383E"/><rect width="160" height="100" filter="url(#${uid}n)" opacity=".22"/>`;
+    } else {
+      o+=`<rect width="160" height="100" fill="#EFECE7"/>`;
+      for(let i=0;i<5;i++){ const y=R()*100; o+=`<path d="M-5 ${y} C40 ${y+R()*30-15} 90 ${y+R()*30-15} 165 ${y+R()*20-10}" stroke="rgba(150,150,160,.28)" stroke-width="${.4+R()}" fill="none"/>`; }
+    }
+    return o;
+  }
+  function scene(r, base, food){
+    const uid = "d"+String(r.id).replace(/[^a-z0-9]/gi,"");
+    const R = rnd(r.id+"s"), kind = r.art[0].split(":")[0], t = SURF[r.cat]||"oak";
+    const hot = kind==="bowl" && ["Frokost","Lunsj","Middag"].includes(r.cat);
+    base = base.replace(/fill="rgba\(0,0,0,\.08\)"/g, `fill="rgba(0,0,0,.45)" filter="url(#${uid}b)"`).replace(/fill="#FDFCF9"/g, `fill="url(#${uid}p)"`).replace(/fill="#F3F0EA"/g, `fill="url(#${uid}w)"`);
+    const napkin = `<g transform="rotate(-14 22 18)"><rect x="-8" y="-6" width="56" height="40" rx="2" fill="${r.bg}"/><rect x="-8" y="6" width="56" height="3" fill="rgba(255,255,255,.55)"/><rect x="-8" y="12" width="56" height="1.2" fill="rgba(255,255,255,.4)"/></g>`;
+    const fork = `<g filter="url(#${uid}s)"><rect x="149" y="34" width="3.2" height="52" rx="1.6" fill="#C9CDD2"/><path d="M146.5 14 v14 q0 6 4 7 q4 -1 4 -7 v-14" fill="none" stroke="#C9CDD2" stroke-width="1.2"/><path d="M149.2 14v12M151.8 14v12" stroke="#C9CDD2" stroke-width="1"/></g>`;
+    const spoon = `<g filter="url(#${uid}s)" transform="rotate(18 146 60)"><ellipse cx="146" cy="30" rx="5" ry="7.5" fill="#C9CDD2"/><rect x="144.6" y="36" width="2.8" height="50" rx="1.4" fill="#C9CDD2"/></g>`;
+    const props = kind==="plate"||kind==="bowl"? napkin : `<ellipse cx="80" cy="91" rx="30" ry="6" fill="${r.bg}" opacity=".9"/>`;
+    const steam = hot? [62,80,98].map((x,i)=>`<path d="M${x} ${30-i%2*4} q-5 -7 0 -13 t0 -13" stroke="rgba(255,255,255,.55)" stroke-width="2.2" stroke-linecap="round" fill="none" filter="url(#${uid}b2)"/>`).join("") : "";
+    return `<svg viewBox="12 7 136 86" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs>
+<radialGradient id="${uid}p" cx=".4" cy=".35" r=".75"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".7" stop-color="#F4F1EC"/><stop offset="1" stop-color="#DCD7CF"/></radialGradient>
+<radialGradient id="${uid}w" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#FBFAF7"/><stop offset="1" stop-color="#E9E5DE"/></radialGradient>
+<radialGradient id="${uid}l" cx=".22" cy=".12" r=".9"><stop offset="0" stop-color="#FFF7E8" stop-opacity=".42"/><stop offset=".55" stop-color="#FFF7E8" stop-opacity="0"/></radialGradient>
+<radialGradient id="${uid}v" cx=".5" cy=".5" r=".75"><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".38"/></radialGradient>
+<filter id="${uid}b" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.4"/></filter>
+<filter id="${uid}b2"><feGaussianBlur stdDeviation="1.1"/></filter>
+<filter id="${uid}s" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="1.2" dy="1.6" stdDeviation="1.2" flood-opacity=".35"/></filter>
+<filter id="${uid}f" x="-10%" y="-10%" width="120%" height="120%"><feDropShadow dx=".5" dy=".9" stdDeviation=".7" flood-opacity=".4"/></filter>
+<filter id="${uid}n"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="3"/><feColorMatrix type="saturate" values="0"/></filter>
+</defs>${table(t,uid,R)}${props}${base}<g filter="url(#${uid}f)" transform="translate(80 ${kind==="glass"?52:54}) scale(${kind==="glass"?1:r.art.includes("pizza")?1.04:1.32}) translate(-80 -${kind==="glass"?52:54})">${food}</g>${steam}<rect x="12" y="7" width="136" height="86" fill="url(#${uid}l)"/><rect x="12" y="7" width="136" height="86" fill="url(#${uid}v)"/></svg>`;
   }
   return {pack, dish};
 })();
@@ -355,7 +398,7 @@ V.historikk = () => {
   const chip=(k,l,st="")=>`<button class="chip ${S.histF===k?"on":""}" style="${st}" data-act="histF" data-arg="${k}" aria-pressed="${S.histF===k}">${l}</button>`;
   return `<div class="col g14"><h1>Historikk</h1>
   <label class="search">${I.search}<span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Søk i historikken</span><input id="histQ" value="${esc(S.histQ)}" placeholder="Søk i historikken"></label>
-  <div class="chips">${chip("alle","Alle")}${chip("Lav","Lav","color:var(--lavt)")}${chip("Middels","Middels","color:var(--mid)")}${chip("Høy","Høy","color:var(--hoyt)")}${S.skanSom?`<button class="chip ${S.histF==="heart"?"on":""}" aria-label="Bare skånsomme" aria-pressed="${S.histF==="heart"}" data-act="histF" data-arg="heart" style="color:var(--pur);width:44px;padding:0;display:flex;align-items:center;justify-content:center">${I.heart}</button>`:""}</div>
+  <div class="chips">${chip("alle","Alle")}${chip("Lav","Lav","color:var(--lavt)")}${chip("Middels","Middels","color:var(--mid)")}${chip("Høy","Høy","color:var(--hoyt)")}${true?`<button class="chip ${S.histF==="heart"?"on":""}" aria-label="Bare skånsomme" aria-pressed="${S.histF==="heart"}" data-act="histF" data-arg="heart" style="color:var(--pur);width:44px;padding:0;display:flex;align-items:center;justify-content:center">${I.heart}</button>`:""}</div>
   <div id="histList" class="col g14">${days.length?days.map(d=>`<div class="col g8"><span class="lbl">${d}</span>${f.filter(h=>h.day===d).map(h=> h.p.id==="custom"
       ? `<button class="item card" style="padding:10px 12px" data-act="openCustom"><span class="img" style="width:48px;height:48px;background:#2A2E33;color:#C9CDD2">${I.text}</span><span class="col grow" style="gap:1px"><span class="brand">FRA DITT BILDE</span><span style="font-size:15px;font-weight:700">Din vare</span><span class="sub">${h.time}</span></span>${tag(h.r,true)}</button>`
       : prodRow(h.p, h.p.size+" · "+h.time)).join("")}</div>`).join(""):`<div class="empty">Ingen varer her ennå. Trykk på den grønne knappen for å skanne.</div>`}</div></div>`;
@@ -397,7 +440,7 @@ V.vare = () => {
   const saved=S.saved.p.includes(p.id);
   const alts=PRODUCTS.filter(x=>x.cat===p.cat&&x.id!==p.id&&pRate(x).overall==="Lav");
   return `<div class="col g14">
-   <div class="row sb"><div class="row g10"><span style="width:32px;height:32px;border-radius:16px;background:${COL[r][2]};color:${COL[r][1]};display:flex;align-items:center;justify-content:center">${I.check}</span><h1>Vare funnet</h1></div><button class="icb" aria-label="Lukk" data-act="back">${I.x}</button></div>
+   <div class="row g10"><button class="icb" aria-label="Tilbake" data-act="back">${I.back}</button><h1>Vare funnet</h1></div>
    <div class="col g12" style="padding:14px 16px 18px;border-radius:28px;border:1px solid ${r==="Høy"?"#3A2522":"var(--line)"};background:${r==="Høy"?"#1A1414":"var(--card)"}">
     <div class="row g14" style="align-items:flex-start">
      ${p.id==="custom"?`<span class="img" style="width:92px;height:92px;border-radius:18px;background:#2A2E33;color:#C9CDD2">${I.text}</span>`:pimg(p,92)}
@@ -415,7 +458,7 @@ V.vare = () => {
    </div></div>`;
 };
 
-V.ingendata = () => `<div class="col g16"><div class="row sb"><div class="row g10"><span style="width:32px;height:32px;border-radius:16px;background:#23272B;color:#C9CDD2;display:flex;align-items:center;justify-content:center;font-weight:700">!</span><h1>Fant ikke varen</h1></div><button class="icb" aria-label="Lukk" data-act="back">${I.x}</button></div>
+V.ingendata = () => `<div class="col g16"><div class="row g10"><button class="icb" aria-label="Tilbake" data-act="back">${I.back}</button><h1>Fant ikke varen</h1></div>
  <div class="card col g10" style="padding:22px 16px;align-items:center;text-align:center"><span style="color:#D2D6DA;line-height:1.45">${S.inputBar?`Strekkoden ${esc(S.inputBar)} finnes`:"Denne strekkoden finnes"} ikke i Open Food Facts${S.kassal?" eller Kassalapp":""} ennå.</span><b style="font-size:14px">Ta bilde av pakken, så sjekker appen den likevel.</b></div>
  <button class="row g14" data-act="go" data-arg="les" style="padding:16px;border-radius:22px;border:0;background:var(--acc);color:#0E1012;text-align:left;cursor:pointer"><span class="img" style="width:48px;height:48px;border-radius:16px;background:rgba(14,16,18,.12);color:#0E1012">${I.text}</span><span class="col g4"><span style="font-size:17px;font-weight:700">Skann ingredienslisten</span><span style="font-size:13px;font-weight:500">Appen leser teksten og fargelegger hver ingrediens</span></span></button>
  <button class="row g14 card" data-act="toast" data-arg="Næringsinnhold gir bare et grovt anslag" style="padding:16px;border-radius:22px;text-align:left;cursor:pointer;color:var(--ink)"><span class="img" style="width:48px;height:48px;border-radius:16px;background:#23272B;color:var(--ink)">${I.ingr}</span><span class="col g4"><span style="font-size:17px;font-weight:700">Skann næringsinnhold</span><span class="sub" style="font-size:13px">Gir bare et grovt anslag – ingredienslisten er best</span></span></button>
@@ -423,7 +466,7 @@ V.ingendata = () => `<div class="col g16"><div class="row sb"><div class="row g1
 
 V.les = () => {
   const a=analyse(S.lesText);
-  return `<div class="col g14"><div class="row sb"><h1>Les ingredienser</h1><button class="icb" aria-label="Lukk" data-act="back">${I.x}</button></div>
+  return `<div class="col g14"><div class="row g10"><button class="icb" aria-label="Tilbake" data-act="back">${I.back}</button><h1>Les ingredienser</h1></div>
   <span class="sub" style="font-size:14px;line-height:1.4">I appen leser kameraet teksten. Her kan du skrive eller lime inn en ingrediensliste og se hva appen finner.</span>
   <label class="col g6"><span class="lbl">Ingrediensliste</span><textarea id="lesText">${esc(S.lesText)}</textarea></label>
   <div id="lesOut">${lesOut(a)}</div></div>`;
@@ -448,7 +491,7 @@ V.innst = () => {
   const sw=(k,label,sub,pur)=>`<div class="row g12" style="padding:12px 14px"><span class="col grow" style="gap:1px"><span style="font-size:15px;font-weight:600">${label}</span><span class="sub">${sub}</span></span><button class="sw ${pur?"pur":""} ${S[k]?"on":""}" role="switch" aria-checked="${S[k]}" aria-label="${label}" data-act="sw" data-arg="${k}"><span></span></button></div>`;
   return `<div class="col g14"><h1>Innstillinger</h1>
   <div class="col g8"><span class="lbl">Mine triggere</span><div class="card chips" style="padding:12px">${tr}</div><span class="sub">Slår du av en gruppe, blir ingredienser som bare har den gruppen regnet som lave.</span></div>
-  <div class="col g8"><span class="lbl" style="color:var(--pur)">Skjult valg</span><div style="border-radius:20px;background:#17141F;border:1px solid #3A3150">${sw("skanSom","Skånsom-merke","Lilla hjerte på grønne varer og oppskrifter som er ekstra milde for magen",true)}</div></div>
+  
   <div class="col g8"><span class="lbl">Skanning</span><div class="card list">${sw("strict","Streng modus","Middels regnes som høy")}${sw("kassal","Bruk Kassalapp som reserve","Hvis Open Food Facts mangler varen")}</div></div>
   <div class="col g8"><span class="lbl">Data</span><div class="card list">
    <a class="item" href="${SHEET_URL}" target="_blank" rel="noopener"><span class="grow" style="font-size:15px;font-weight:600">Rediger ingrediensliste</span><span style="color:var(--mute)">${I.chev}</span></a>
@@ -567,7 +610,7 @@ app.addEventListener("click",ev=>{
     case "saveP": { const i=S.saved.p.indexOf(g); if(i>-1){S.saved.p.splice(i,1);toast("Fjernet fra lagret");} else {S.saved.p.unshift(g);toast("Lagret");} render(true); break; }
     case "saveR": { const i=S.saved.r.indexOf(g); if(i>-1){S.saved.r.splice(i,1);toast("Fjernet fra lagret");} else {S.saved.r.unshift(g);toast("Lagret");} render(true); break; }
     case "trig": S.triggers[g]=!S.triggers[g]; render(true); break;
-    case "sw": S[g]=!S[g]; if(g==="skanSom"&&!S.skanSom&&S.histF==="heart")S.histF="alle"; render(true); break;
+    case "sw": S[g]=!S[g]; render(true); break;
     case "clear": if(S.clearArm){S.history=[];S.clearArm=false;toast("Historikken er tømt");render(true);} else {S.clearArm=true;render(true);} break;
     case "sheet": S.sheet=g; render(true); break;
     case "closeSheet": S.sheet=null; render(true); break;

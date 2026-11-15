@@ -32,10 +32,11 @@ rep('<title>Mage – demo</title>', '''<title>Mage</title>
 <link rel="icon" type="image/png" href="icons/icon-192.png">''')
 rep('</style>', '''/* ---- phone app ---- */
 html,body{background:var(--bg);overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
-.stage{padding:0!important;gap:0!important;min-height:100dvh}
-.phone{width:100%!important;max-width:600px;height:100dvh!important;border-radius:0!important;box-shadow:none!important}
-#view{padding-top:calc(env(safe-area-inset-top) + 14px);padding-bottom:calc(env(safe-area-inset-bottom) + 130px)}
-nav.bar{bottom:calc(env(safe-area-inset-bottom) + 8px)}
+html,body{height:100%;overflow:hidden}
+.stage{position:fixed!important;top:0;right:0;bottom:0;left:0;padding:0!important;gap:0!important;display:block!important;min-height:0!important}
+.phone{position:absolute!important;top:0;bottom:0;left:0;right:0;margin:0 auto;width:100%!important;max-width:600px;height:auto!important;border-radius:0!important;box-shadow:none!important}
+#view{padding-top:calc(env(safe-area-inset-top) + 14px);padding-bottom:calc(env(safe-area-inset-bottom) + 112px)}
+nav.bar{bottom:max(6px,calc(env(safe-area-inset-bottom) - 10px))}
 .img{position:relative}
 .pimg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff}
 .cam video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}

@@ -10,7 +10,7 @@ const CAM = { stream: null, track: null, timer: 0, reader: null, busy: false, to
 /* ---------- storage ---------- */
 function persist() {
   try {
-    localStorage.setItem(LS, JSON.stringify({ history: S.history.slice(0, 300), saved: S.saved, triggers: S.triggers, skanSom: S.skanSom, strict: S.strict, kassal: S.kassal, kassalKey: S.kassalKey, custom: S.custom && { ...S.custom, a: null } }));
+    localStorage.setItem(LS, JSON.stringify({ history: S.history.slice(0, 300), saved: S.saved, triggers: S.triggers, strict: S.strict, kassal: S.kassal, kassalKey: S.kassalKey, custom: S.custom && { ...S.custom, a: null } }));
   } catch (e) {}
 }
 function saveProd(p) {
@@ -25,6 +25,7 @@ function loadState() {
   try {
     const d = JSON.parse(localStorage.getItem(LS) || "null");
     if (d) { Object.assign(S, d); S.triggers = { ...{ Fruktaner: true, Laktose: true, Fruktose: true, Polyoler: true, GOS: true }, ...(d.triggers || {}) }; }
+    S.skanSom = true;
     if (S.custom) S.custom.a = analyse(S.custom.ing);
     JSON.parse(localStorage.getItem(LSP) || "[]").forEach(p => { const i = PRODUCTS.findIndex(x => x.id === p.id); if (i > -1) PRODUCTS[i] = p; else PRODUCTS.push(p); });
   } catch (e) {}
@@ -98,10 +99,10 @@ async function lookup(raw) {
   S.offline = failed && !p;
   go("ingendata", false);
 }
-V.henter = () => `<div class="col g16"><div class="row sb"><h1>Henter varen …</h1><button class="icb" aria-label="Avbryt" data-act="back">${I.x}</button></div>
+V.henter = () => `<div class="col g16"><div class="row g10"><button class="icb" aria-label="Tilbake" data-act="back">${I.back}</button><h1>Henter varen …</h1></div>
  <div class="card col g10" style="padding:26px 16px;align-items:center;text-align:center"><span class="spin" aria-hidden="true"></span><span style="font-weight:700">Strekkode ${esc(S.looking || "")}</span><span class="sub">Søker i Open Food Facts${S.kassal && S.kassalKey ? " og Kassalapp" : ""}</span></div></div>`;
 
-V.ingendata = () => `<div class="col g16"><div class="row sb"><div class="row g10"><span style="width:32px;height:32px;border-radius:16px;background:#23272B;color:#C9CDD2;display:flex;align-items:center;justify-content:center;font-weight:700">!</span><h1>${S.offline ? "Ingen nett" : S.pendingName ? "Mangler ingredienser" : "Fant ikke varen"}</h1></div><button class="icb" aria-label="Lukk" data-act="back">${I.x}</button></div>
+V.ingendata = () => `<div class="col g16"><div class="row g10"><button class="icb" aria-label="Tilbake" data-act="back">${I.back}</button><h1>${S.offline ? "Ingen nett" : S.pendingName ? "Mangler ingredienser" : "Fant ikke varen"}</h1></div>
  <div class="card col g10" style="padding:22px 16px;align-items:center;text-align:center">
   ${S.pendingName ? `<span style="font-size:17px;font-weight:700">${esc(S.pendingBrand ? S.pendingBrand + " " : "")}${esc(S.pendingName)}</span>` : ""}
   <span style="color:#D2D6DA;line-height:1.45">${S.offline ? "Fikk ikke kontakt med Open Food Facts. Sjekk nettet og prøv igjen – eller ta bilde av ingredienslisten." : S.pendingName ? "Varen finnes i Open Food Facts, men uten ingrediensliste." : `Strekkoden ${esc(S.inputBar || "")} finnes ikke i Open Food Facts${S.kassal && S.kassalKey ? " eller Kassalapp" : ""} ennå.`}</span>
@@ -242,7 +243,7 @@ document.addEventListener("visibilitychange", () => {
 /* ---------- read the ingredient list from a photo (OCR) ---------- */
 V.les = () => {
   const a = analyse(S.lesText);
-  return `<div class="col g14"><div class="row sb"><h1>Les ingredienser</h1><button class="icb" aria-label="Lukk" data-act="back">${I.x}</button></div>
+  return `<div class="col g14"><div class="row g10"><button class="icb" aria-label="Tilbake" data-act="back">${I.back}</button><h1>Les ingredienser</h1></div>
   ${S.pendingName ? `<span class="sub" style="font-size:14px">For: <b style="color:var(--ink)">${esc(S.pendingName)}</b></span>` : ""}
   <label class="row g14" style="padding:16px;border-radius:22px;background:var(--acc);color:#0E1012;cursor:pointer"><span class="img" style="width:48px;height:48px;border-radius:16px;background:rgba(14,16,18,.12);color:#0E1012">${I.photo}</span><span class="col g4"><span style="font-size:17px;font-weight:700">Ta bilde av ingredienslisten</span><span style="font-size:13px;font-weight:500">Hold telefonen rett over teksten, god belysning</span></span><input type="file" id="ocrFile" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0"></label>
   <span class="sub" id="ocrStatus" style="line-height:1.4">${esc(S.ocrStatus || "")}</span>

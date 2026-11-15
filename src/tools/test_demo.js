@@ -58,6 +58,8 @@ S.row = "mørk sjokolade"; S.view = "row"; M.render(); ok(!el("view").innerHTML.
 S.row = "hvete"; M.render(); ok(el("view").innerHTML.includes("Bytt ut med") && el("view").innerHTML.includes("havre"), "wheat swaps");
 S.strict = true; ok(A("tomatpuré") === "Høy", "strict"); S.strict = false;
 S.triggers.Laktose = false; ok(A("melk") === "Lav", "trigger off"); S.triggers.Laktose = true;
-S.skanSom = false; ok(!M.pHeart(M.PRODUCTS.find(p => p.id === "finmix")), "heart off"); S.skanSom = true;
+ok(A("Fullkornsris 99,2%, havsalt 0,8%.") === "Lav", "decimal comma percentages (rice cakes)");
+ok(A("Ris 92 %, havsalt 8 %") === "Lav" && A("Ris, havsalt, 8%") === "Lav", "loose percentages are not ingredients");
+ok(M.analyse("Fullkornsris 99,2%, havsalt 0,8%").tree.length === 2, "rice cakes = 2 ingredients");
 console.log(fail ? "\n" + fail + " FAILED" : "\nALL PASSED (" + M.RECIPES.length + " recipes, " + M.PRODUCTS.length + " products, " + M.ROWS.length + " ingredients)");
 process.exit(fail ? 1 : 0);
