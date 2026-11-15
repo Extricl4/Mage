@@ -95,7 +95,7 @@ ROWS = [
 ("laktosefrie meieriprodukter", "laktosefri; laktoseredusert; laktosefri melk; laktosefri yoghurt; laktosefri rømme; laktosefri kremost; laktosefri fløte; laktosefri kesam; laktosefri iskrem", "Melk og meieri", "Ingen", LAV, "", "Lav så lenge det ikke er tilsatt andre høy-ingredienser.", H),
 ("smør", "meierismør; setersmør; smørolje; ghee; melkefett", "Melk og meieri", "Ingen", LAV, "", "", H),
 ("margarin", "plantemargarin", "Fett og olje", "Ingen", LAV, "", "", H),
-("hard ost", "ost; hvitost; gulost; norvegia; jarlsberg; cheddar; parmesan; manchego; gouda; edamer", "Melk og meieri", "Ingen", LAV, "", "Hard ost har nesten ikke laktose.", H),
+("hard ost", "ost; hvitost; gulost; norvegia; norvegiaost; jarlsberg; jarlsbergost; cheddar; cheddarost; parmesan; parmesanost; parmigiano reggiano; grana padano; pecorino; manchego; gouda; goudaost; edamer; edamerost; emmentaler; emmentalerost; gruyère; gruyere; ridderost; port salut; nøkkelost; snøfrisk lagret; revet ost; skiveost; pizzaost; osteblanding", "Melk og meieri", "Ingen", LAV, "", "Hard ost har nesten ikke laktose.", H),
 ("mozzarella", "", "Melk og meieri", "Ingen", LAV, "", "", H),
 ("fetaost", "feta; salatost", "Melk og meieri", "Ingen", LAV, "", "", H),
 ("brie", "", "Melk og meieri", "Ingen", LAV, "", "", H),
