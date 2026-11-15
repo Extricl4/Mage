@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mage – demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: calm, practical store companion – trustworthy, no hype
+   IDEA: a shelf-side scanner that sorts groceries like a traffic light
+   PICTURE: the working app itself, in a phone, with the camera frame as hero
+   COLOUR and TYPE: near-black ground, green/yellow/red/grey signals, purple heart; Space Grotesk
+   LAYOUT: one phone column; full screen on phones, centred device on wider screens */
+:root{color-scheme:dark;--bg:#0E1012;--card:#15181B;--card2:#1B1F23;--line:#23272B;--line2:#2E3337;--ink:#F2F3F4;--mute:#9AA1A8;--soft:#C9CDD2;--acc:#7CFFB2;
+--lav:#5CE29A;--lavt:#7BE8AE;--lavb:rgba(92,226,154,.12);--mid:#FFD166;--midb:rgba(255,209,102,.13);--hoy:#FF6B5E;--hoyt:#FF8A7F;--hoyb:rgba(255,107,94,.16);--gra:#9AA1A8;--grat:#C9CDD2;--grab:rgba(154,161,168,.16);--pur:#C7A8FF;--purb:rgba(183,148,255,.16)}
+:root[data-theme=light],:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0;background:#07080A;color:var(--ink);font:16px/1.45 "Space Grotesk",system-ui,sans-serif}
+button,input,textarea{font:inherit;color:inherit}
+a{color:#C9F7DC}
+.stage{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px}
+.phone{position:relative;width:390px;height:min(844px,calc(100vh - 70px));background:var(--bg);border-radius:44px;overflow:hidden;box-shadow:0 0 0 10px #1a1c1f,0 30px 80px rgba(0,0,0,.6)}
+.note{font-size:13px;color:#8a9097;text-align:center;max-width:390px;margin:0}
+@media(max-width:520px){.stage{padding:0;gap:0}.phone{width:100%;height:100dvh;border-radius:0;box-shadow:none}.note{display:none}}
+#view{position:absolute;inset:0;overflow-y:auto;padding:52px 20px 130px}
+#view::-webkit-scrollbar{display:none}
+h1{margin:0;font-size:26px;font-weight:700;line-height:1.1}
+.lbl{font-size:12px;font-weight:600;letter-spacing:2px;color:var(--mute);text-transform:uppercase}
+.col{display:flex;flex-direction:column}.row{display:flex;align-items:center}
+.g4{gap:4px}.g6{gap:6px}.g8{gap:8px}.g10{gap:10px}.g12{gap:12px}.g14{gap:14px}.g16{gap:16px}
+.grow{flex:1 1 auto}.sb{justify-content:space-between}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px}
+.list>*+*{border-top:1px solid var(--line)}
+.item{display:flex;align-items:center;gap:12px;padding:11px 14px;width:100%;background:none;border:0;text-align:left;cursor:pointer;text-decoration:none;color:var(--ink)}
+.icb{width:44px;height:44px;border-radius:14px;border:1px solid #2A2E33;background:#16191C;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.chip{height:36px;padding:0 13px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--soft);font-size:14px;font-weight:600;cursor:pointer;flex-shrink:0;white-space:nowrap}
+.chip.on{background:var(--ink);color:#0E1012;border-color:var(--ink);font-weight:700}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.hs{display:flex;gap:8px;overflow-x:auto;margin-right:-20px;padding-right:20px}.hs::-webkit-scrollbar{display:none}
+.tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;padding:4px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
+.tab{height:40px;border-radius:12px;border:0;background:none;color:var(--soft);font-size:14px;font-weight:600;cursor:pointer}
+.tab.on{background:var(--ink);color:#0E1012;font-weight:700}
+.search{display:flex;align-items:center;gap:10px;height:50px;padding:0 14px;border-radius:16px;background:var(--card);border:1px solid #3A4046}
+.search input{border:0;outline:0;background:none;font-size:16px;flex:1}
+.dot{width:10px;height:10px;border-radius:5px;flex-shrink:0}
+.tag{font-size:12px;font-weight:700;letter-spacing:1px;white-space:nowrap}
+.pill{padding:6px 12px;border-radius:999px;font-size:13px;font-weight:700;letter-spacing:1px;white-space:nowrap}
+.ing{padding:5px 10px;border-radius:9px;font-size:13px;font-weight:600;border:0;cursor:pointer}
+.heart{width:24px;height:24px;border-radius:12px;background:var(--purb);color:var(--pur);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.img{border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#6B5F5B}
+.sub{font-size:12px;color:var(--mute)}
+.brand{font-size:11px;font-weight:700;letter-spacing:1px;color:var(--mute)}
+.big{width:100%;height:50px;border-radius:16px;border:0;font-size:15px;font-weight:700;cursor:pointer}
+.big.light{background:var(--ink);color:#0E1012}.big.ghost{background:none;border:1px solid var(--line2);color:var(--ink)}
+.sw{width:52px;height:32px;border-radius:16px;border:0;padding:3px;display:flex;cursor:pointer;flex-shrink:0;background:#2E3337;justify-content:flex-start}
+.sw span{width:26px;height:26px;border-radius:13px;background:#C9CDD2}
+.sw.on{background:var(--acc);justify-content:flex-end}.sw.on span{background:#0E1012}
+.sw.pur.on{background:#B794FF}
+.empty{padding:22px;text-align:center;color:var(--mute);font-size:14px}
+.back{display:inline-flex;align-items:center;gap:4px;height:44px;padding-right:10px;background:none;border:0;color:#C9F7DC;font-size:15px;font-weight:600;cursor:pointer;align-self:flex-start}
+nav.bar{position:absolute;left:20px;right:20px;bottom:24px;height:68px;border-radius:24px;background:#16191C;border:1px solid var(--line);display:flex;justify-content:space-around;align-items:center;z-index:5}
+nav.bar button{width:48px;height:48px;border-radius:16px;border:0;background:none;color:var(--mute);display:flex;align-items:center;justify-content:center;cursor:pointer}
+nav.bar button.on{background:#23272B;color:var(--ink)}
+nav.bar button.scan{width:88px;height:88px;border-radius:30px;background:var(--acc);color:#0E1012;margin-top:-46px;box-shadow:0 0 0 6px var(--bg)}
+.sheet{position:absolute;left:0;right:0;bottom:0;z-index:10;background:#15181B;border-top:1px solid var(--line);border-radius:28px 28px 0 0;padding:14px 20px 30px;display:flex;flex-direction:column;gap:10px}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.55);z-index:9}
+#toast{position:absolute;left:50%;bottom:110px;transform:translateX(-50%);background:var(--ink);color:#0E1012;padding:10px 16px;border-radius:999px;font-size:14px;font-weight:700;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20;white-space:nowrap}
+#toast.show{opacity:1}
+.cam{position:relative;height:330px;border-radius:26px;background:#181B1F;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.corner{position:absolute;width:42px;height:42px;border:4px solid var(--acc)}
+.scanline{position:absolute;left:46px;right:46px;top:50%;height:3px;border-radius:2px;background:var(--acc);animation:sl 2.2s ease-in-out infinite}
+@keyframes sl{0%,100%{transform:translateY(-60px)}50%{transform:translateY(60px)}}
+@media(prefers-reduced-motion:reduce){.scanline{animation:none}}
+textarea{width:100%;min-height:150px;border-radius:16px;background:#EDE9E3;color:#2A2622;border:0;padding:14px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;resize:vertical}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.step{display:flex;gap:12px}.num{width:28px;height:28px;border-radius:14px;background:#23272B;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone" id="app">
+    <main id="view"></main>
+    <nav class="bar" id="nav" aria-label="Hovedmeny"></nav>
+    <div id="layer"></div>
+    <div id="toast" role="status"></div>
+  </div>
+  <p class="note">Demo med eksempeldata. Kameraet virker ikke her, så skanning er simulert. Varene, oppskriftene og ingredienslista er ekte – bildene er tegnede illustrasjoner.</p>
+</div>
+<script>
+{
+const ROWS = /*__DATA__*/[];
+const SHEET_URL = "https://claude.ai/artifact/6AqVWWamcQ16fJXhpsPZqY";
+
+/* ---------- products (real ingredient lists) ---------- */
+const PRODUCTS = /*__PRODUCTS__*/[];
+const RECIPES = /*__RECIPES__*/[];
+const RCATS = ["Alle","Frokost","Lunsj","Middag","Mellommåltid","Snacks","Godteri","Kaker","Bakst"];
+
+/* ---------- state ---------- */
+const S = {
+ view:"historikk", stack:[], pid:null, rid:null, row:null,
+ lookTab:"varer", lookQ:"mel", lookFilter:"alt", recCat:"Alle", recQ:"",
+ histQ:"", histF:"alle",
+ history:[{pid:"minestrone",day:"I dag",time:"22:41"},{pid:"kvikklunsj",day:"I dag",time:"22:36"},{pid:"tinemelk",day:"I går",time:"18:20"},{pid:"finmix",day:"I går",time:"18:12"}],
+ saved:{p:["finmix","tinemelk"], r:["grot","laks"]},
+ triggers:{Fruktaner:true,Laktose:true,Fruktose:true,Polyoler:true,GOS:true},
+ skanSom:true, strict:false, kassal:true, clearArm:false,
+ custom:null, lesText:"Ingredienser: hvetemel, vann, rapsolje, sukker, gjær, salt, løkpulver, naturlig aroma, emulgator (E471).",
+ sheet:null, inputBar:""
+};
+
+/* ---------- icons ---------- */
+const P = (d,w=22,sw=2)=>`<svg width="${w}" height="${w}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const I = {
+ hist:P('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
+ ingr:P('<path d="M4 6h16M4 12h16M4 18h10"/>'),
+ scan:P('<path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v5M16 8v8"/>',40),
+ saved:P('<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>'),
+ savedFill:`<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`,
+ set:P('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'),
+ search:P('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',18),
+ x:P('<path d="M6 6l12 12M18 6 6 18"/>',18),
+ back:P('<path d="m15 18-6-6 6-6"/>',20),
+ chev:P('<path d="m9 18 6-6-6-6"/>',18),
+ check:P('<path d="M5 12l5 5L19 7"/>',18,2.6),
+ light:P('<path d="M8 2h8l-1 6H9z"/><path d="M9 8h6v12a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"/><path d="M12 13v3"/>',20),
+ kbd:P('<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/>',20),
+ photo:P('<rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/>',26,1.8),
+ text:P('<path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 9h10M7 12h10M7 15h6"/>',26),
+ heart:`<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.5-9.2C1 8.3 3.2 5 6.6 5c2 0 3.4 1.1 4.4 2.5C12 6.1 13.4 5 15.4 5 18.8 5 21 8.3 19.5 11.8 17.5 16.4 12 21 12 21z"/></svg>`,
+ heartO:P('<path d="M12 21s-7.5-4.6-9.5-9.2C1 8.3 3.2 5 6.6 5c2 0 3.4 1.1 4.4 2.5C12 6.1 13.4 5 15.4 5 18.8 5 21 8.3 19.5 11.8 17.5 16.4 12 21 12 21z"/>',20)
+};
+
+/* ---------- rating engine ---------- */
+const SEV = {"Lav":0,"Middels":1,"Ikke vurdert":2,"Høy":3};
+const COL = {"Lav":["var(--lav)","var(--lavt)","var(--lavb)"],"Middels":["var(--mid)","var(--mid)","var(--midb)"],"Høy":["var(--hoy)","var(--hoyt)","var(--hoyb)"],"Ikke vurdert":["var(--gra)","var(--grat)","var(--grab)"]};
+const worst = a => a.reduce((w,r)=> SEV[r]>SEV[w]?r:w, "Lav");
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const byName = {}; ROWS.forEach(r=>byName[r.n]=r);
+const TERMS = [];
+ROWS.forEach(r=>{[r.n,...r.s].forEach(t=>{const k=t.toLowerCase().trim(); if(k) TERMS.push({t:k,r});});});
+TERMS.sort((a,b)=>b.t.length-a.t.length);
+const WC = /[a-z0-9æøåéèäöüàá]/;
+const norm = s => s.toLowerCase().replace(/\s+-\s+/g,"").replace(/\be\s+(\d{3,4}[a-z]?)\b/g,"e$1").replace(/\s+/g," ").trim();
+function groupsOf(f){const g=[];const l=f.toLowerCase();if(l.includes("fruktan"))g.push("Fruktaner");if(l.includes("laktose"))g.push("Laktose");if(l.includes("fruktose"))g.push("Fruktose");if(l.includes("polyol"))g.push("Polyoler");if(f.includes("GOS"))g.push("GOS");return g;}
+function eff(row){let r=row.r;if(r==="Lav"||r==="Ikke vurdert")return r;const g=groupsOf(row.f);if(g.length&&!g.some(x=>S.triggers[x]))return "Lav";if(S.strict&&r==="Middels")return "Høy";return r;}
+function match(name,lf){
+  let s=" "+norm(name)+" "; const found=[];
+  for(const {t,r} of TERMS){
+    let i=s.indexOf(t);
+    while(i>-1){
+      if(!WC.test(s[i-1]||" ")&&!WC.test(s[i+t.length]||" ")){ if(!found.includes(r))found.push(r); s=s.slice(0,i)+" ".repeat(t.length)+s.slice(i+t.length); }
+      i=s.indexOf(t,i+1);
+    }
+  }
+  if(!found.length&&/\be\d{3,4}[a-z]?\b/.test(s)) found.push(byName["andre E-nummer"]);
+  const l=name.toLowerCase();
+  if(lf||/laktosefri|laktoseredusert/.test(l)) return found.map(r=> (r.f==="Laktose"&&r.c==="Melk og meieri")?byName["laktosefrie meieriprodukter"]:r);
+  return found;
+}
+function parse(str){
+  let s=str.replace(/^\s*ingredienser\s*:/i,"");
+  const cut=s.search(/kan inneholde spor/i); if(cut>-1)s=s.slice(0,cut);
+  {let d=0;for(let i=0;i<s.length;i++){const ch=s[i];if(ch==="(")d++;else if(ch===")")d--;else if(ch==="."&&d===0&&/^\.\s+[A-ZÆØÅ]/.test(s.slice(i,i+3))){s=s.slice(0,i);break;}}}
+  s=s.replace(/\.\s*$/,"");
+  const out=[];let depth=0,buf="";
+  const push=()=>{const t=buf.trim();if(t)out.push(node(t));buf="";};
+  for(const ch of s){
+    if(ch==="("){depth++;buf+=ch;}else if(ch===")"){depth--;buf+=ch;}
+    else if((ch===","||ch===";")&&depth===0)push(); else buf+=ch;
+  }
+  push(); return out;
+}
+function node(t){
+  let name="",kids=[],depth=0,inner="",pct="";
+  for(const ch of t){
+    if(ch==="("){ if(depth>0)inner+=ch; depth++; }
+    else if(ch===")"){ depth--; if(depth>0)inner+=ch; else { const k=inner.trim(); if(/^[\d.,\s]+%$/.test(k))pct=k.replace(/\s/g,""); else kids.push(...parse(k)); inner=""; } }
+    else if(depth>0) inner+=ch; else name+=ch;
+  }
+  name=name.trim();
+  return {name, pct, kids};
+}
+function rate(n,lf){
+  n.kids.forEach(k=>rate(k,lf));
+  const rows=match(n.name,lf); n.rows=rows;
+  const own=rows.length?worst(rows.map(eff)):null;
+  const generic=rows.length&&rows.every(r=>r.r==="Ikke vurdert");
+  if(n.kids.length){
+    const kr=n.kids.map(k=>k.rating);
+    if(own!==null&&!generic) n.rating=worst([own,...kr.filter(r=>r==="Høy")]);
+    else { n.rating=worst(kr); n.ignoredOwn=true; }
+  } else n.rating= own===null?"Ikke vurdert":own;
+  n.unknown=!rows.length&&!n.kids.length;
+  return n;
+}
+function analyse(text,lf){
+  const tree=parse(text).map(n=>rate(n,lf));
+  const why=[];const seen=new Set();
+  const walk=n=>{
+    if(n.unknown){ if(!seen.has("?"+n.name)){seen.add("?"+n.name);why.push({unknown:n.name});} }
+    else if(!n.ignoredOwn) n.rows.forEach(r=>{const e=eff(r); if(e!=="Lav"&&!seen.has(r.n)){seen.add(r.n);why.push({row:r,e,label:n.name});}});
+    (!n.ignoredOwn&&n.rows.length? n.kids.filter(k=>k.rating==="Høy") : n.kids).forEach(walk);
+  };
+  tree.forEach(walk);
+  why.sort((a,b)=>SEV[b.e||"Ikke vurdert"]-SEV[a.e||"Ikke vurdert"]);
+  const overall=tree.length?worst(tree.map(n=>n.rating)):"Ikke vurdert";
+  const counts={"Høy":0,"Middels":0,"Ikke vurdert":0,"Lav":0}; tree.forEach(n=>counts[n.rating]++);
+  return {tree,why,overall,counts};
+}
+const prod = id => PRODUCTS.find(p=>p.id===id);
+const isLF = p => !!(p.lf||/laktosefri|laktoseredusert/i.test(p.name||""));
+const pRate = p => p.id==="custom"? p.a : analyse(p.ing,isLF(p));
+/* purple heart: every counted ingredient is "Ja" or "Nøytral", at least one "Ja", nothing unknown */
+function gentleState(a){
+  let ja=false, bad=false;
+  const walk=n=>{ if(n.unknown){bad=true;return;} if(!n.ignoredOwn) n.rows.forEach(r=>{ if(r.k==="Ja")ja=true; else if(r.k!=="Nøytral")bad=true; }); n.kids.forEach(walk); };
+  a.tree.forEach(walk);
+  return bad?"Nei":(ja?"Ja":"Nøytral");
+}
+const pHeart = p => { if(!S.skanSom) return false; const a=pRate(p); return a.overall==="Lav" && gentleState(a)==="Ja"; };
+function ingK(i){ if(i.p){ const pp=prod(i.p), a=pRate(pp); return a.overall==="Lav"?gentleState(a):"Nei"; } return byName[i.r].k; }
+const NO_HEART_CATS = ["Godteri","Kaker","Snacks"];
+const rHeart = r => { if(!S.skanSom||r.noHeart||NO_HEART_CATS.includes(r.cat)||recRating(r)!=="Lav") return false; const ks=r.ing.map(ingK); return ks.every(k=>k!=="Nei") && ks.includes("Ja"); };
+function recIngRating(i){ let r= i.p? pRate(prod(i.p)).overall : eff(byName[i.r]); if(i.ok&&r==="Middels") r="Lav"; return r; }
+const recRating = r => worst(r.ing.map(recIngRating));
+
+/* ---------- drawn images (original illustrations, no photos) ---------- */
+const ART = (()=>{
+  const rnd = s => { let x = 0; for (const c of s) x = (x*31 + c.charCodeAt(0)) >>> 0; return () => { x = (x*1103515245 + 12345) >>> 0; return (x % 1000) / 1000; }; };
+  const ex = (t,i)=> (t.split(":")[1]) || i;
+  const txt = (s,n) => s.length>n ? s.slice(0,n-1)+"…" : s;
+  function pack(p){
+    const a=p.c1, b=p.c2, br=esc(p.brand), nm=esc(txt(p.name,16));
+    const T=(y,s,w,c,fs)=>`<text x="50" y="${y}" text-anchor="middle" font-family="Space Grotesk,Arial,sans-serif" font-size="${fs}" font-weight="${w}" fill="${c}">${s}</text>`;
+    let body="";
+    if(p.pack==="carton") body=`<path d="M32 30 L50 16 L68 30 Z" fill="${b}" stroke="#d6d6d6"/><rect x="47" y="10" width="6" height="8" fill="${a}"/><rect x="32" y="30" width="36" height="58" rx="2" fill="${b}" stroke="#d6d6d6"/><rect x="32" y="44" width="36" height="24" fill="${a}"/>${T(53,br,700,"#fff",6)}${T(62,nm.slice(0,12),500,"#fff",4.6)}<path d="M38 80 q12 -6 24 0" stroke="${a}" stroke-width="2" fill="none"/>`;
+    else if(p.pack==="bag") body=`<path d="M26 24 L74 24 L76 88 Q50 92 24 88 Z" fill="${b}" stroke="#d6d0c4"/><rect x="26" y="18" width="48" height="10" rx="2" fill="${a}"/><circle cx="50" cy="52" r="15" fill="${a}"/>${T(50,br,700,"#fff",5.6)}${T(57,"glutenfri",500,"#fff",4.2)}${T(78,nm.slice(0,14),600,a,4.8)}`;
+    else if(p.pack==="pouch") body=`<path d="M28 16 Q50 12 72 16 L74 84 Q50 92 26 84 Z" fill="${b}" stroke="#d8cdb9"/><path d="M28 16 Q50 12 72 16 L73 44 L27 44 Z" fill="${a}"/>${T(30,br,700,"#fff",5.6)}${T(38,"suppe",500,"#fff",4.4)}<ellipse cx="50" cy="64" rx="15" ry="9" fill="#C9542F"/><circle cx="45" cy="62" r="2.2" fill="#F0A33A"/><circle cx="54" cy="66" r="2" fill="#7FAE4A"/><circle cx="51" cy="61" r="1.8" fill="#F3E3B0"/>${T(82,nm.slice(0,14),600,a,4.6)}`;
+    else if(p.pack==="bar") body=`<rect x="8" y="36" width="84" height="28" rx="4" fill="${a}"/><rect x="8" y="46" width="84" height="8" fill="${b}"/>${T(52,nm.slice(0,14),700,a,6.5)}<path d="M8 36 l4 3 l-4 3 l4 3 l-4 3 l4 3 l-4 3 l4 3 l-4 3" stroke="${b}" fill="none" stroke-width="1"/>`;
+    else if(p.pack==="bottle") body=`<rect x="44" y="8" width="12" height="10" rx="2" fill="${b}" stroke="#ddd"/><path d="M40 18 h20 l6 14 v50 q0 8 -8 8 h-16 q-8 0 -8 -8 v-50 Z" fill="${a}"/><rect x="36" y="44" width="28" height="26" rx="3" fill="${b}"/>${T(55,br,700,a,5.4)}${T(63,nm.slice(0,11),500,a,4)}`;
+    else if(p.pack==="tub") body=`<ellipse cx="50" cy="34" rx="28" ry="7" fill="${a}"/><path d="M22 34 L28 84 Q50 90 72 84 L78 34 Z" fill="${b}" stroke="#e1d7c0"/><rect x="26" y="50" width="48" height="16" fill="${a}"/>${T(60,br.slice(0,12),700,"#fff",4.6)}${T(78,nm.slice(0,14),600,a,4.4)}`;
+    return `<svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true"><rect width="100" height="100" fill="${lighten(b)}"/>${body}</svg>`;
+  }
+  function lighten(hex){ if(hex.toUpperCase()==="#FFFFFF") return "#EEF1F4"; return hex; }
+  function dish(r){
+    const R=rnd(r.id); let base="", zone={cx:80,cy:56,rx:40,ry:18};
+    const pts=(n,z=zone)=>Array.from({length:n},()=>[z.cx+(R()*2-1)*z.rx, z.cy+(R()*2-1)*z.ry]);
+    const out=[];
+    for(const tok of r.art){
+      const k=tok.split(":")[0];
+      switch(k){
+        case "plate": base=`<ellipse cx="80" cy="62" rx="62" ry="32" fill="rgba(0,0,0,.08)"/><ellipse cx="80" cy="57" rx="62" ry="32" fill="#FDFCF9"/><ellipse cx="80" cy="57" rx="48" ry="24" fill="#F3F0EA"/>`; zone={cx:80,cy:56,rx:34,ry:14}; break;
+        case "bowl": base=`<ellipse cx="80" cy="84" rx="40" ry="6" fill="rgba(0,0,0,.08)"/><path d="M30 44 Q34 86 80 86 Q126 86 130 44 Z" fill="#FDFCF9"/><ellipse cx="80" cy="44" rx="50" ry="13" fill="#E9E5DD"/><ellipse cx="80" cy="45" rx="45" ry="10.5" fill="${ex(tok,"#EADFC8")}"/>`; zone={cx:80,cy:45,rx:32,ry:6}; break;
+        case "glass": base=`<ellipse cx="80" cy="90" rx="22" ry="4" fill="rgba(0,0,0,.08)"/><path d="M62 18 h36 l-4 70 q0 3 -3 3 h-22 q-3 0 -3 -3 Z" fill="${ex(tok,"#8E6BBF")}"/><path d="M66 22 h6 l-2 62 h-4 Z" fill="rgba(255,255,255,.25)"/><rect x="86" y="6" width="4" height="30" rx="2" fill="#F2F3F4" transform="rotate(14 88 20)"/>`; zone={cx:80,cy:16,rx:14,ry:3}; break;
+        case "pancakes": for(let i=0;i<4;i++) out.push(`<ellipse cx="80" cy="${60-i*5}" rx="30" ry="9" fill="${i%2?"#E2A64B":"#ECB866"}" stroke="#C98A3A" stroke-width=".6"/>`); out.push(`<rect x="72" y="38" width="14" height="6" rx="2" fill="#F6E7A8"/>`); zone={cx:80,cy:44,rx:22,ry:5}; break;
+        case "berries": pts(7).forEach(([x,y])=>out.push(`<circle cx="${x}" cy="${y}" r="3.6" fill="${ex(tok,"#3B4E9C")}"/><circle cx="${x-1}" cy="${y-1}" r="1" fill="rgba(255,255,255,.35)"/>`)); break;
+        case "cinnamon": pts(14).forEach(([x,y])=>out.push(`<circle cx="${x}" cy="${y}" r=".9" fill="#8A5530"/>`)); break;
+        case "omelette": out.push(`<path d="M46 58 Q80 20 114 58 Z" fill="#F2C94C" stroke="#D9A92E"/>`); break;
+        case "greens": pts(5).forEach(([x,y])=>out.push(`<ellipse cx="${x}" cy="${y}" rx="7" ry="3.4" fill="#4E8F3A" transform="rotate(${R()*180} ${x} ${y})"/>`)); break;
+        case "herbs": pts(10).forEach(([x,y])=>out.push(`<circle cx="${x}" cy="${y}" r="1.4" fill="#3E7C35"/>`)); break;
+        case "banana": pts(5).forEach(([x,y])=>out.push(`<circle cx="${x}" cy="${y}" r="5.4" fill="#F5E39A" stroke="#E2C45C"/><circle cx="${x}" cy="${y}" r="1.2" fill="#C9A64A"/>`)); break;
+        case "seeds": pts(16).forEach(([x,y])=>out.push(`<ellipse cx="${x}" cy="${y}" rx="1.2" ry=".8" fill="#3A3330"/>`)); break;
+        case "kiwi": pts(3).forEach(([x,y])=>out.push(`<circle cx="${x}" cy="${y}" r="7" fill="#7FB04A"/><circle cx="${x}" cy="${y}" r="3" fill="#EDEBC0"/>`)); break;
+        case "ricecakes": [[64,56],[96,56]].forEach(([x,y])=>out.push(`<circle cx="${x}" cy="${y}" r="16" fill="#E8D5A8" stroke="#D2BC86"/><circle cx="${x-5}" cy="${y-4}" r="1.3" fill="#D2BC86"/><circle cx="${x+4}" cy="${y+3}" r="1.3" fill="#D2BC86"/>`)); zone={cx:80,cy:54,rx:28,ry:8}; break;
+        case "scrambled": [[64,52],[96,52]].forEach(([x,y])=>out.push(`<path d="M${x-10} ${y} q4 -8 10 -4 q6 -5 10 3 q-2 6 -10 5 q-8 2 -10 -4 Z" fill="#F4CE52"/>`)); break;
+        case "noodles": for(let i=0;i<7;i++){const y=48+i*2.5;out.push(`<path d="M50 ${y} q8 -5 15 0 t15 0 t15 0 t15 0" stroke="#F1E6CC" stroke-width="2" fill="none"/>`);} break;
+        case "chicken": pts(4).forEach(([x,y])=>out.push(`<rect x="${x-6}" y="${y-4}" width="12" height="8" rx="3" fill="#D9A465" stroke="#B9813F" stroke-width=".6"/>`)); break;
+        case "drumsticks": [[64,52],[92,58]].forEach(([x,y])=>out.push(`<ellipse cx="${x}" cy="${y}" rx="13" ry="8" fill="#C2803F" transform="rotate(-20 ${x} ${y})"/><rect x="${x+9}" y="${y-2}" width="10" height="4" rx="2" fill="#F3E9D6" transform="rotate(-20 ${x} ${y})"/>`)); break;
+        case "carrot": pts(4).forEach(([x,y])=>out.push(`<rect x="${x-6}" y="${y-2}" width="12" height="4" rx="2" fill="#E8833A" transform="rotate(${R()*160} ${x} ${y})"/>`)); break;
+        case "carrotsticks": for(let i=0;i<7;i++) out.push(`<rect x="52" y="${44+i*3}" width="44" height="3.6" rx="1.8" fill="#E8833A" transform="rotate(${-12+i*4} 74 56)"/>`); break;
+        case "potatoes": pts(4).forEach(([x,y])=>out.push(`<ellipse cx="${x}" cy="${y}" rx="7.5" ry="5.5" fill="#E9C46A" stroke="#C9A040" stroke-width=".6"/>`)); break;
+        case "bakedpotato": [[64,56],[96,56]].forEach(([x,y])=>out.push(`<ellipse cx="${x}" cy="${y}" rx="15" ry="10" fill="#A8743F"/><ellipse cx="${x}" cy="${y-2}" rx="9" ry="5" fill="#F6EDD5"/>`)); zone={cx:80,cy:52,rx:24,ry:5}; break;
+        case "fish": out.push(`<rect x="58" y="46" width="44" height="18" rx="8" fill="${ex(tok,"#D9C3A5")}"/>`); break;
+        case "salmon": out.push(`<rect x="60" y="44" width="40" height="18" rx="7" fill="#F08A5D"/>`); for(let i=0;i<4;i++) out.push(`<path d="M${66+i*9} 46 l4 14" stroke="#FBD3BE" stroke-width="1.4"/>`); break;
+        case "whitefish": out.push(`<rect x="60" y="44" width="40" height="18" rx="7" fill="#F4F0E6" stroke="#E0D8C6"/>`); for(let i=0;i<4;i++) out.push(`<path d="M${66+i*9} 46 q3 7 0 14" stroke="#E6DDCB" stroke-width="1" fill="none"/>`); break;
+        case "egg": pts(2).forEach(([x,y])=>out.push(`<ellipse cx="${x}" cy="${y}" rx="8" ry="6" fill="#FFFFFF" stroke="#E6E2D8"/><circle cx="${x}" cy="${y}" r="3.4" fill="#F2B632"/>`)); break;
+        case "rice": pts(60).forEach(([x,y])=>out.push(`<ellipse cx="${x}" cy="${y}" rx="1.8" ry="1" fill="#FFFFFF" stroke="#E7E2D6" stroke-width=".3"/>`)); break;
+        case "grains": pts(60).forEach(([x,y])=>out.push(`<circle cx="${x}" cy="${y}" r="1" fill="#D8C79C"/>`)); break;
+        case "cucumber": pts(4).forEach(([x,y])=>out.push(`<circle cx="${x}" cy="${y}" r="5" fill="#CFE3A8" stroke="#4E8F3A" stroke-width="1.4"/>`)); break;
+        case "feta": pts(5).forEach(([x,y])=>out.push(`<rect x="${x-3}" y="${y-3}" width="6" height="6" fill="#FBFAF4" stroke="#E2DED0" stroke-width=".5"/>`)); break;
+        case "shrimp": pts(4).forEach(([x,y])=>out.push(`<path d="M${x-5} ${y} a5 5 0 1 0 6 -4" stroke="#F09A8A" stroke-width="3" fill="none" stroke-linecap="round"/>`)); break;
+        case "butter": out.push(`<rect x="76" y="40" width="9" height="6" rx="1" fill="#F6E08E"/>`); break;
+        case "beans": pts(6).forEach(([x,y])=>out.push(`<rect x="${x-8}" y="${y-1.6}" width="16" height="3.2" rx="1.6" fill="#5E9E42" transform="rotate(${R()*160} ${x} ${y})"/>`)); break;
+        case "pasta": pts(12).forEach(([x,y])=>out.push(`<rect x="${x-4}" y="${y-1.8}" width="8" height="3.6" rx="1.8" fill="#F1CF6E" stroke="#D9B04A" stroke-width=".5" transform="rotate(${R()*180} ${x} ${y})"/>`)); break;
+        case "sauce": out.push(`<ellipse cx="80" cy="54" rx="20" ry="9" fill="#B8402F"/><circle cx="74" cy="52" r="2" fill="#E8833A"/><circle cx="86" cy="56" r="2" fill="#E8833A"/>`); break;
+        case "cheese": pts(14).forEach(([x,y])=>out.push(`<rect x="${x}" y="${y}" width="3" height="1" fill="#F7E6A6" transform="rotate(${R()*180} ${x} ${y})"/>`)); break;
+        case "bacon": pts(4).forEach(([x,y])=>out.push(`<rect x="${x-5}" y="${y-2}" width="10" height="4" rx="1" fill="#C55A4E" stroke="#F0C1B2" stroke-width=".8"/>`)); break;
+        case "mash": out.push(`<ellipse cx="70" cy="56" rx="18" ry="9" fill="#F4E4B0"/><path d="M60 54 q10 -6 20 0" stroke="#E5CF8A" fill="none"/>`); break;
+        case "meatballs": pts(6).forEach(([x,y])=>out.push(`<circle cx="${x}" cy="${y}" r="5.5" fill="#7E4A2C"/><circle cx="${x-1.5}" cy="${y-1.5}" r="1.4" fill="#A26A45"/>`)); break;
+        case "sweetpotato": pts(6).forEach(([x,y])=>out.push(`<rect x="${x-4}" y="${y-4}" width="8" height="8" rx="2" fill="#E5873C"/>`)); break;
+        case "dip": out.push(`<ellipse cx="108" cy="60" rx="14" ry="6" fill="#FDFCF9" stroke="#E6E2D8"/><ellipse cx="108" cy="59" rx="11" ry="4" fill="#F8F6EE"/><circle cx="105" cy="58" r=".8" fill="#3E7C35"/><circle cx="110" cy="59" r=".8" fill="#3E7C35"/>`); break;
+        case "chips": pts(9).forEach(([x,y])=>out.push(`<ellipse cx="${x}" cy="${y}" rx="7" ry="4.5" fill="${ex(tok,"#EFCB6A")}" stroke="rgba(0,0,0,.12)" stroke-width=".6" transform="rotate(${R()*180} ${x} ${y})"/>`)); break;
+        case "popcorn": pts(16).forEach(([x,y])=>out.push(`<circle cx="${x}" cy="${y}" r="3.6" fill="#FFF8E6"/><circle cx="${x+2}" cy="${y-1}" r="2.4" fill="#FFFDF5"/>`)); break;
+        case "crackers": pts(4).forEach(([x,y])=>out.push(`<rect x="${x-9}" y="${y-6}" width="18" height="12" rx="1" fill="#D9BE8A" transform="rotate(${R()*40-20} ${x} ${y})"/>`)); break;
+        case "cheesecrisps": pts(5).forEach(([x,y])=>out.push(`<circle cx="${x}" cy="${y}" r="7" fill="#EDC660" stroke="#D2A43A" stroke-dasharray="2 1"/>`)); break;
+        case "chocolate": pts(5).forEach(([x,y])=>out.push(`<rect x="${x-5}" y="${y-5}" width="10" height="10" rx="1.5" fill="#5A3622" stroke="#3E2416" stroke-width=".6" transform="rotate(${R()*30} ${x} ${y})"/>`)); break;
+        case "peanuts": pts(8).forEach(([x,y])=>out.push(`<ellipse cx="${x}" cy="${y}" rx="2.8" ry="1.8" fill="#D2A06A"/>`)); break;
+        case "caramels": pts(6).forEach(([x,y])=>out.push(`<rect x="${x-4.5}" y="${y-4.5}" width="9" height="9" rx="1.5" fill="#C8873E" stroke="#A86A2A" stroke-width=".6"/>`)); break;
+        case "balls": pts(6).forEach(([x,y])=>{out.push(`<circle cx="${x}" cy="${y}" r="5.6" fill="${ex(tok,"#5C3A24")}"/>`);for(let j=0;j<4;j++)out.push(`<circle cx="${x+R()*6-3}" cy="${y+R()*6-3}" r=".7" fill="#FFF"/>`);}); break;
+        case "bark": pts(4).forEach(([x,y])=>out.push(`<path d="M${x-10} ${y-4} l14 -3 l7 8 l-12 5 Z" fill="#4A2C1C"/><ellipse cx="${x}" cy="${y}" rx="2.5" ry="1.4" fill="#B97A45"/>`)); break;
+        case "macaroons": pts(5).forEach(([x,y])=>out.push(`<path d="M${x-6} ${y+4} q6 -14 12 0 Z" fill="#F7F1E4" stroke="#E2CFA6"/><path d="M${x-2} ${y-4} q2 -2 4 0" stroke="#D9A85C" fill="none"/>`)); break;
+        case "brownies": for(let i=0;i<3;i++) out.push(`<rect x="${56+i*17}" y="${46+(i%2)*4}" width="14" height="12" rx="1.5" fill="#4E2E1C"/><path d="M${58+i*17} ${50+(i%2)*4} l8 2" stroke="#6E4630" stroke-width=".8"/>`); break;
+        case "muffins": [[64,56],[96,56]].forEach(([x,y])=>out.push(`<path d="M${x-9} ${y-2} l3 12 h12 l3 -12 Z" fill="#D9B87C" stroke="#BE9A5A"/><ellipse cx="${x}" cy="${y-3}" rx="11" ry="7" fill="#E8C98C"/><circle cx="${x-3}" cy="${y-4}" r="1.6" fill="#3B4E9C"/><circle cx="${x+3}" cy="${y-2}" r="1.6" fill="#3B4E9C"/>`)); break;
+        case "layercake": out.push(`<rect x="58" y="40" width="44" height="22" rx="2" fill="#F1D9A0"/><rect x="58" y="47" width="44" height="3" fill="#FBF7EE"/><rect x="58" y="54" width="44" height="3" fill="#FBF7EE"/><path d="M58 40 q22 -8 44 0" fill="#FBF7EE"/>`); [66,76,86,96].forEach(x=>out.push(`<circle cx="${x}" cy="38" r="3" fill="#D63A4A"/>`)); break;
+        case "carrotcake": for(let i=0;i<2;i++) out.push(`<rect x="${60+i*22}" y="44" width="18" height="16" rx="1.5" fill="#C27F45"/><rect x="${60+i*22}" y="44" width="18" height="4" fill="#FBF7EE"/>`); break;
+        case "cakeslice": out.push(`<path d="M56 60 L104 60 L96 42 Z" fill="#4A2C1C"/><path d="M96 42 L104 60" stroke="#2E1A10"/>`); break;
+        case "cookies": pts(5).forEach(([x,y])=>out.push(`<circle cx="${x}" cy="${y}" r="7" fill="#DDAE62" stroke="#BF8E44" stroke-width=".6"/><circle cx="${x-2}" cy="${y-1}" r=".8" fill="#BF8E44"/>`)); break;
+        case "pie": out.push(`<ellipse cx="80" cy="56" rx="30" ry="14" fill="#C7A06A"/><ellipse cx="80" cy="55" rx="25" ry="11" fill="#C6475A"/>`); pts(18).forEach(([x,y])=>out.push(`<circle cx="${x}" cy="${y}" r="1.6" fill="#E9CF9A"/>`)); break;
+        case "tacos": [[60,56],[100,56]].forEach(([x,y])=>out.push(`<path d="M${x-18} ${y+6} A18 16 0 0 1 ${x+18} ${y+6} Z" fill="#E9B95A" stroke="#C99540"/><path d="M${x-14} ${y+2} q14 -12 28 0" stroke="#5E9E42" stroke-width="4" fill="none"/><path d="M${x-12} ${y+4} q12 -8 24 0" stroke="#8A5232" stroke-width="3" fill="none"/><circle cx="${x-4}" cy="${y-2}" r="1.6" fill="#F3D35C"/><circle cx="${x+5}" cy="${y-1}" r="1.6" fill="#F7E6A6"/>`)); break;
+        case "buns": [[62,52],[84,48],[100,58],[72,62]].forEach(([x,y])=>out.push(`<circle cx="${x}" cy="${y}" r="10" fill="#D9963E"/><ellipse cx="${x-2}" cy="${y-3}" rx="5" ry="3" fill="#E8B060"/><circle cx="${x+2}" cy="${y-4}" r=".9" fill="#FFF"/><circle cx="${x-3}" cy="${y-1}" r=".9" fill="#FFF"/>`)); break;
+        case "cinnamonrolls": [[64,52],[96,52],[80,62]].forEach(([x,y])=>out.push(`<circle cx="${x}" cy="${y}" r="11" fill="#D59A55"/><path d="M${x} ${y} m-1 0 a1 1 0 1 1 2 0 a3 3 0 1 1 -5 0 a5 5 0 1 1 9 0 a7 7 0 1 1 -13 0" stroke="#8A5530" stroke-width="1.6" fill="none"/>`)); break;
+        case "bread": out.push(`<path d="M48 64 q0 -24 32 -24 q32 0 32 24 Z" fill="#B97A3F"/><rect x="48" y="60" width="64" height="8" rx="2" fill="#A86A33"/><path d="M60 46 l6 6 M74 42 l6 6 M88 44 l6 6" stroke="#E2B37A" stroke-width="2"/>`); break;
+        case "pizza": out.push(`<circle cx="80" cy="56" r="30" fill="#E6B464"/><circle cx="80" cy="56" r="26" fill="#C8462F"/>`); pts(10).forEach(([x,y])=>out.push(`<circle cx="${x}" cy="${y}" r="3.4" fill="#FBF3D6"/>`)); pts(6).forEach(([x,y])=>out.push(`<rect x="${x-2.5}" y="${y-2.5}" width="5" height="5" fill="#E79AA0"/>`)); pts(5).forEach(([x,y])=>out.push(`<rect x="${x-3}" y="${y-1}" width="6" height="2" rx="1" fill="#5E9E42"/>`)); break;
+        case "fishcakes": [[66,52],[86,50],[76,60]].forEach(([x,y])=>out.push(`<ellipse cx="${x}" cy="${y}" rx="10" ry="7" fill="#D9B98A" stroke="#B8935E"/><ellipse cx="${x-2}" cy="${y-2}" rx="5" ry="3" fill="#E6CDA4"/>`)); break;
+        case "steak": out.push(`<path d="M58 44 q22 -6 38 2 q6 10 -4 16 q-20 6 -34 -2 q-6 -8 0 -16 Z" fill="#7A3E2A"/><path d="M64 50 l24 0 M66 55 l22 0" stroke="#9E5A3E" stroke-width="1.5"/>`); break;
+        case "wedges": pts(5).forEach(([x,y])=>out.push(`<path d="M${x-8} ${y+3} q8 -12 16 0 Z" fill="#E1AE52" stroke="#B9843A" transform="rotate(${R()*60-30} ${x} ${y})"/>`)); break;
+        case "bearnaise": out.push(`<ellipse cx="104" cy="60" rx="10" ry="5" fill="#F2D35C"/><circle cx="101" cy="59" r=".8" fill="#3E7C35"/><circle cx="106" cy="61" r=".8" fill="#3E7C35"/>`); break;
+        case "burger": [[66,54],[94,54]].forEach(([x,y])=>out.push(`<ellipse cx="${x}" cy="${y}" rx="11" ry="7" fill="#6E3E26"/><path d="M${x-11} ${y-2} q11 -6 22 0 l-2 3 l-3 -2 l-3 3 l-3 -3 l-3 3 l-3 -3 l-3 2 Z" fill="#F2C84B"/>`)); break;
+        case "waffles": [[66,56],[94,56]].forEach(([x,y])=>{out.push(`<circle cx="${x}" cy="${y}" r="12" fill="#E7B65C" stroke="#C99540"/>`);for(let j=-1;j<=1;j++){out.push(`<path d="M${x-10} ${y+j*5} h20 M${x+j*5} ${y-10} v20" stroke="#C99540" stroke-width=".7"/>`);}}); break;
+      }
+    }
+    return `<svg viewBox="0 0 160 100" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="160" height="100" fill="${r.bg}"/>${base}${out.join("")}</svg>`;
+  }
+  return {pack, dish};
+})();
+
+/* ---------- ui helpers ---------- */
+const word = (r,whole) => ({"Lav":"LAV","Middels":"MIDDELS","Høy":"HØY","Ikke vurdert":whole?"USIKKER":"IKKE VURDERT"}[r]);
+const dot = r => `<span class="dot" style="background:${COL[r][0]}"></span>`;
+const tag = (r,whole) => `<span class="tag" style="color:${COL[r][1]}">${word(r,whole)}</span>`;
+const pill = (r,whole,extra="") => `<span class="pill" style="background:${COL[r][2]};color:${COL[r][1]}">${word(r,whole)}${extra}</span>`;
+const heart = () => `<span class="heart" role="img" aria-label="Skånsom">${I.heart}</span>`;
+const pimg = (p,s=48) => p.id==="custom"? `<span class="img" style="width:${s}px;height:${s}px;background:#2A2E33;color:#C9CDD2">${I.text}</span>` : `<span class="img" role="img" aria-label="Illustrasjon av ${esc(p.brand+" "+p.name)}" style="width:${s}px;height:${s}px;overflow:hidden;border-radius:${Math.round(s/4)}px">${ART.pack(p)}</span>`;
+const rimg = (r,h,rad=12) => `<span class="img" role="img" aria-label="Illustrasjon av ${esc(r.title)}" style="height:${h}px;width:100%;overflow:hidden;border-radius:${rad}px">${ART.dish(r)}</span>`;
+const countLine = c => ["Høy","Middels","Ikke vurdert","Lav"].filter(k=>c[k]).map(k=>c[k]+" "+({"Høy":"høy","Middels":"middels","Ikke vurdert":"ikke vurdert","Lav":"lav"}[k])).join(" · ");
+function toast(t){const el=document.getElementById("toast");el.textContent=t;el.classList.add("show");clearTimeout(toast.h);toast.h=setTimeout(()=>el.classList.remove("show"),1600);}
+
+function prodRow(p,sub){
+  const a=pRate(p);
+  return `<button class="item card" style="padding:10px 12px" data-act="openP" data-arg="${p.id}">${pimg(p)}
+   <span class="col g4 grow" style="gap:1px"><span class="brand">${esc(p.brand)}</span><span style="font-size:15px;font-weight:700">${esc(p.name)}</span><span class="sub">${esc(sub||p.size)}</span></span>
+   <span class="row g6">${pHeart(p)?heart():""}${tag(a.overall,true)}</span></button>`;
+}
+
+/* ---------- screens ---------- */
+const V = {};
+V.historikk = () => {
+  const q=S.histQ.toLowerCase();
+  const items=S.history.map((h,i)=>({...h,i,p:prod(h.pid)||S.custom,r:null})).filter(h=>h.p);
+  items.forEach(h=>h.r=pRate(h.p).overall);
+  const f=items.filter(h=>(!q||(h.p.name+" "+h.p.brand).toLowerCase().includes(q)) && (S.histF==="alle"||(S.histF==="heart"?pHeart(h.p):h.r===S.histF)));
+  const days=[...new Set(f.map(h=>h.day))];
+  const chip=(k,l,st="")=>`<button class="chip ${S.histF===k?"on":""}" style="${st}" data-act="histF" data-arg="${k}" aria-pressed="${S.histF===k}">${l}</button>`;
+  return `<div class="col g14"><h1>Historikk</h1>
+  <label class="search">${I.search}<span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Søk i historikken</span><input id="histQ" value="${esc(S.histQ)}" placeholder="Søk i historikken"></label>
+  <div class="chips">${chip("alle","Alle")}${chip("Lav","Lav","color:var(--lavt)")}${chip("Middels","Middels","color:var(--mid)")}${chip("Høy","Høy","color:var(--hoyt)")}${S.skanSom?`<button class="chip ${S.histF==="heart"?"on":""}" aria-label="Bare skånsomme" aria-pressed="${S.histF==="heart"}" data-act="histF" data-arg="heart" style="color:var(--pur);width:44px;padding:0;display:flex;align-items:center;justify-content:center">${I.heart}</button>`:""}</div>
+  <div id="histList" class="col g14">${days.length?days.map(d=>`<div class="col g8"><span class="lbl">${d}</span>${f.filter(h=>h.day===d).map(h=> h.p.id==="custom"
+      ? `<button class="item card" style="padding:10px 12px" data-act="openCustom"><span class="img" style="width:48px;height:48px;background:#2A2E33;color:#C9CDD2">${I.text}</span><span class="col grow" style="gap:1px"><span class="brand">FRA DITT BILDE</span><span style="font-size:15px;font-weight:700">Din vare</span><span class="sub">${h.time}</span></span>${tag(h.r,true)}</button>`
+      : prodRow(h.p, h.p.size+" · "+h.time)).join("")}</div>`).join(""):`<div class="empty">Ingen varer her ennå. Trykk på den grønne knappen for å skanne.</div>`}</div></div>`;
+};
+
+V.skanner = () => {
+  const last=S.history[0]; const lp=last&&(prod(last.pid)||null);
+  return `<div class="col g16"><div class="row sb"><h1>Skann strekkode</h1><div class="row g8"><button class="icb" aria-label="Lommelykt" data-act="toast" data-arg="Lommelykt virker bare i appen">${I.light}</button><button class="icb" aria-label="Skriv inn strekkode" data-act="sheet" data-arg="ean">${I.kbd}</button></div></div>
+  <button class="cam" data-act="sheet" data-arg="sim" aria-label="Simuler skann" style="border:0;cursor:pointer;width:100%;color:var(--ink)">
+   <span class="corner" style="left:30px;top:70px;border-right:0;border-bottom:0;border-top-left-radius:16px"></span><span class="corner" style="right:30px;top:70px;border-left:0;border-bottom:0;border-top-right-radius:16px"></span>
+   <span class="corner" style="left:30px;bottom:70px;border-right:0;border-top:0;border-bottom-left-radius:16px"></span><span class="corner" style="right:30px;bottom:70px;border-left:0;border-top:0;border-bottom-right-radius:16px"></span>
+   <span class="scanline"></span>
+   <span style="position:absolute;bottom:18px;left:50%;transform:translateX(-50%);padding:9px 16px;border-radius:999px;background:rgba(14,16,18,.85);font-size:14px;font-weight:600;white-space:nowrap">Trykk for å simulere et skann</span>
+  </button>
+  <span class="sub" style="text-align:center;margin-top:-6px">Hold strekkoden inne i rammen · søker i Open Food Facts Norge</span>
+  ${lp?(()=>{const r=pRate(lp).overall;return `<button class="item card" style="padding:12px 14px" data-act="openP" data-arg="${lp.id}">${dot(r)}<span class="col grow" style="gap:1px"><span class="sub">Sist skannet</span><span style="font-size:15px;font-weight:700">${esc(lp.brand)} ${esc(lp.name)}</span></span><span class="row g6">${pHeart(lp)?heart():""}${tag(r,true)}</span></button>`})():""}</div>`;
+};
+
+function whyBlock(a){
+  const hi=a.why.filter(w=>w.e==="Høy").map(w=>w.row.n);
+  let sum;
+  if(a.overall==="Høy") sum=`${esc(hi.slice(0,2).map(x=>x[0].toUpperCase()+x.slice(1)).join(" og "))} gjør denne varen høy.${hi.some(x=>/løk|hvitløk/.test(x))?" Med løk eller hvitløk finnes det <b>ingen porsjon av varen</b> som regnes som trygg.":""}`;
+  else if(a.overall==="Ikke vurdert") sum="Noen ingredienser kan ikke vurderes sikkert. Grått regnes aldri som trygt.";
+  else if(a.overall==="Middels") sum="Lav bare i små porsjoner. Se mengdene under.";
+  else sum="Alle ingrediensene er lave i vanlige porsjoner.";
+  return `<div class="lbl" style="color:#B5A8A5">${a.overall==="Lav"?"Hvorfor lav?":"Hvorfor "+word(a.overall,true).toLowerCase()+"?"}</div>
+  <div style="padding:12px 14px;border-radius:16px;background:${COL[a.overall][2]};font-size:14px;line-height:1.45">${sum}</div>
+  ${a.why.length?`<div class="card list" style="background:none;border-color:#2E2321">${a.why.map(w=> w.unknown
+    ? `<div class="row g12" style="padding:12px 14px;align-items:flex-start">${dot("Ikke vurdert")}<span class="col g4"><span style="font-size:15px;font-weight:700">${esc(w.unknown)} <span style="font-weight:500;color:#B5A8A5">· ukjent</span></span><span style="font-size:13px;color:#D6C9C6">Finnes ikke i ingredienslista. Appen gjetter ikke – derfor grå.</span></span></div>`
+    : `<button class="item" style="padding:12px 14px;align-items:flex-start" data-act="openRow" data-arg="${esc(w.row.n)}">${dot(w.e)}<span class="col g4 grow"><span style="font-size:15px;font-weight:700">${esc(w.row.n[0].toUpperCase()+w.row.n.slice(1))} <span style="font-weight:500;color:#B5A8A5">· ${esc(w.row.f==="Varierer"?"ikke vurdert":w.row.f.toLowerCase())}</span></span><span style="font-size:13px;color:#D6C9C6;line-height:1.4">${w.row.ok?`<b style="color:var(--lavt)">OK:</b> ${esc(w.row.ok)}. `:""}${esc(w.row.note||"")}</span><span class="sub">Fant: «${esc(w.label)}»</span></span></button>`).join("")}</div>`:""}
+  <span class="sub" style="line-height:1.4">Kilde: Haukeland universitetssjukehus (NKFM, juni 2026) og Monash University. Generelle råd – magen din kan tåle mer eller mindre.</span>`;
+}
+function chipsFor(a){
+  const flat=[...a.tree].sort((x,y)=>SEV[y.rating]-SEV[x.rating]);
+  return `<div class="chips" style="gap:6px">${flat.map(n=>{const r=n.rating;const row=(n.rows&&n.rows[0]);return `<button class="ing" ${row&&!n.ignoredOwn?`data-act="openRow" data-arg="${esc(row.n)}"`:"disabled"} style="background:${COL[r][2]};color:${COL[r][1]};${SEV[r]===3?"font-weight:700":""}">${esc(n.name.toLowerCase())}</button>`}).join("")}</div>`;
+}
+V.vare = () => {
+  const p=S.pid==="custom"?S.custom:prod(S.pid); const a=pRate(p); const r=a.overall; const hrt=pHeart(p);
+  const saved=S.saved.p.includes(p.id);
+  const alts=PRODUCTS.filter(x=>x.cat===p.cat&&x.id!==p.id&&pRate(x).overall==="Lav");
+  return `<div class="col g14">
+   <div class="row sb"><div class="row g10"><span style="width:32px;height:32px;border-radius:16px;background:${COL[r][2]};color:${COL[r][1]};display:flex;align-items:center;justify-content:center">${I.check}</span><h1>Vare funnet</h1></div><button class="icb" aria-label="Lukk" data-act="back">${I.x}</button></div>
+   <div class="col g12" style="padding:14px 16px 18px;border-radius:28px;border:1px solid ${r==="Høy"?"#3A2522":"var(--line)"};background:${r==="Høy"?"#1A1414":"var(--card)"}">
+    <div class="row g14" style="align-items:flex-start">
+     ${p.id==="custom"?`<span class="img" style="width:92px;height:92px;border-radius:18px;background:#2A2E33;color:#C9CDD2">${I.text}</span>`:pimg(p,92)}
+     <div class="col g4 grow"><span class="brand" style="font-size:12px;letter-spacing:1.5px">${esc(p.brand)}</span><span style="font-size:21px;font-weight:700;line-height:1.15">${esc(p.name)}</span><span style="font-size:13px;color:#C7B9B6">${esc(p.size)}</span>${p.ean?`<span class="sub">EAN ${p.ean}</span>`:""}</div>
+     ${p.id==="custom"?"":`<button class="icb" aria-label="${saved?"Fjern fra lagret":"Lagre vare"}" aria-pressed="${saved}" data-act="saveP" data-arg="${p.id}" style="background:none;border-color:#3A2C2A;${saved?"color:var(--acc)":""}">${saved?I.savedFill:I.saved}</button>`}
+    </div>
+    <div class="row sb g10" style="padding:10px 12px;border-radius:16px;background:${COL[r][2]}">${pill(r,true," FODMAP")}<span style="font-size:13px;color:#D6C9C6;text-align:right">${countLine(a.counts)}</span></div>
+    ${hrt?`<div class="row g10" style="padding:10px 12px;border-radius:16px;border:1px solid #3A3150;background:#17141F;color:var(--pur);font-size:14px;font-weight:600">${heart()} Skånsom for magen – alle ingrediensene er milde</div>`:""}
+    ${isLF(p)&&p.id!=="custom"?`<span class="sub" style="margin-top:-4px">Varen er merket laktosefri, så melk i ingredienslisten regnes som laktosefri.</span>`:""}
+    <span class="sub" style="margin-top:-4px">Data: ${esc(p.src)} · vurdert etter Monash og Haukeland (NKFM)</span>
+    <div style="height:1px;background:#2E2321"></div>
+    <div class="lbl" style="color:#B5A8A5">Ingredienser</div>${chipsFor(a)}
+    <div style="height:1px;background:#2E2321;margin-top:4px"></div>${whyBlock(a)}
+    ${r!=="Lav"&&p.id!=="custom"?`<div style="height:1px;background:#2E2321;margin-top:4px"></div><div class="lbl" style="color:#B5A8A5">Prøv heller</div>${alts.length?alts.map(x=>prodRow(x)).join(""):`<span class="sub" style="line-height:1.4">I appen hentes grønne ${esc(p.cat)} fra Open Food Facts. I demoen finnes ingen ennå.</span>`}`:""}
+   </div></div>`;
+};
+
+V.ingendata = () => `<div class="col g16"><div class="row sb"><div class="row g10"><span style="width:32px;height:32px;border-radius:16px;background:#23272B;color:#C9CDD2;display:flex;align-items:center;justify-content:center;font-weight:700">!</span><h1>Fant ikke varen</h1></div><button class="icb" aria-label="Lukk" data-act="back">${I.x}</button></div>
+ <div class="card col g10" style="padding:22px 16px;align-items:center;text-align:center"><span style="color:#D2D6DA;line-height:1.45">${S.inputBar?`Strekkoden ${esc(S.inputBar)} finnes`:"Denne strekkoden finnes"} ikke i Open Food Facts${S.kassal?" eller Kassalapp":""} ennå.</span><b style="font-size:14px">Ta bilde av pakken, så sjekker appen den likevel.</b></div>
+ <button class="row g14" data-act="go" data-arg="les" style="padding:16px;border-radius:22px;border:0;background:var(--acc);color:#0E1012;text-align:left;cursor:pointer"><span class="img" style="width:48px;height:48px;border-radius:16px;background:rgba(14,16,18,.12);color:#0E1012">${I.text}</span><span class="col g4"><span style="font-size:17px;font-weight:700">Skann ingredienslisten</span><span style="font-size:13px;font-weight:500">Appen leser teksten og fargelegger hver ingrediens</span></span></button>
+ <button class="row g14 card" data-act="toast" data-arg="Næringsinnhold gir bare et grovt anslag" style="padding:16px;border-radius:22px;text-align:left;cursor:pointer;color:var(--ink)"><span class="img" style="width:48px;height:48px;border-radius:16px;background:#23272B;color:var(--ink)">${I.ingr}</span><span class="col g4"><span style="font-size:17px;font-weight:700">Skann næringsinnhold</span><span class="sub" style="font-size:13px">Gir bare et grovt anslag – ingredienslisten er best</span></span></button>
+ <span class="sub" style="text-align:center;line-height:1.4">Svaret lagres på telefonen, så neste gang du skanner denne varen vet appen det med en gang.</span></div>`;
+
+V.les = () => {
+  const a=analyse(S.lesText);
+  return `<div class="col g14"><div class="row sb"><h1>Les ingredienser</h1><button class="icb" aria-label="Lukk" data-act="back">${I.x}</button></div>
+  <span class="sub" style="font-size:14px;line-height:1.4">I appen leser kameraet teksten. Her kan du skrive eller lime inn en ingrediensliste og se hva appen finner.</span>
+  <label class="col g6"><span class="lbl">Ingrediensliste</span><textarea id="lesText">${esc(S.lesText)}</textarea></label>
+  <div id="lesOut">${lesOut(a)}</div></div>`;
+};
+function lesOut(a){
+  return `<div class="card col g12" style="padding:16px"><div class="row sb"><span style="font-size:17px;font-weight:700">Fant ${a.tree.length} ingredienser</span>${pill(a.overall,true)}</div>
+  ${chipsFor(a)}<span class="sub" style="font-size:13px;line-height:1.4">${countLine(a.counts)||"Skriv inn en ingrediensliste over."}</span>
+  <button class="big light" data-act="useLes">Bruk disse</button></div>`;
+}
+
+V.lagret = () => {
+  const ps=S.saved.p.map(prod).filter(Boolean), rs=S.saved.r.map(id=>RECIPES.find(r=>r.id===id)).filter(Boolean);
+  const card=(img,brand,name,r,act,arg,h)=>`<button class="card col g8" data-act="${act}" data-arg="${arg}" style="padding:12px;text-align:left;cursor:pointer;color:var(--ink)">${img}<span class="col" style="gap:1px"><span class="brand">${esc(brand)}</span><span style="font-size:15px;font-weight:700;line-height:1.2">${esc(name)}</span></span><span class="row g6">${pill(r,true)}${h?heart():""}</span></button>`;
+  const n=ps.length+rs.length;
+  return `<div class="col g16"><div class="row sb"><h1>Lagret</h1><span class="sub" style="font-size:14px">${n} lagret</span></div>
+  ${n?`<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${ps.map(p=>{const r=pRate(p).overall;return card(`<span class="img" style="height:72px;width:100%;overflow:hidden">${ART.pack(p)}</span>`,p.brand,p.name,r,"openP",p.id,pHeart(p))}).join("")}${rs.map(x=>{const r=recRating(x);return card(rimg(x,72),"OPPSKRIFT",x.title,r,"openR",x.id,rHeart(x))}).join("")}</div>`
+   :`<div class="empty">Du har ikke lagret noe ennå. Trykk på bokmerket på en vare eller oppskrift.</div>`}</div>`;
+};
+
+V.innst = () => {
+  const tr=Object.keys(S.triggers).map(k=>`<button class="chip" aria-pressed="${S.triggers[k]}" data-act="trig" data-arg="${k}" style="${S.triggers[k]?"border-color:var(--acc);background:rgba(124,255,178,.1);color:var(--ink)":""}">${k==="GOS"?"GOS (bønner)":k}</button>`).join("");
+  const sw=(k,label,sub,pur)=>`<div class="row g12" style="padding:12px 14px"><span class="col grow" style="gap:1px"><span style="font-size:15px;font-weight:600">${label}</span><span class="sub">${sub}</span></span><button class="sw ${pur?"pur":""} ${S[k]?"on":""}" role="switch" aria-checked="${S[k]}" aria-label="${label}" data-act="sw" data-arg="${k}"><span></span></button></div>`;
+  return `<div class="col g14"><h1>Innstillinger</h1>
+  <div class="col g8"><span class="lbl">Mine triggere</span><div class="card chips" style="padding:12px">${tr}</div><span class="sub">Slår du av en gruppe, blir ingredienser som bare har den gruppen regnet som lave.</span></div>
+  <div class="col g8"><span class="lbl" style="color:var(--pur)">Skjult valg</span><div style="border-radius:20px;background:#17141F;border:1px solid #3A3150">${sw("skanSom","Skånsom-merke","Lilla hjerte på grønne varer og oppskrifter som er ekstra milde for magen",true)}</div></div>
+  <div class="col g8"><span class="lbl">Skanning</span><div class="card list">${sw("strict","Streng modus","Middels regnes som høy")}${sw("kassal","Bruk Kassalapp som reserve","Hvis Open Food Facts mangler varen")}</div></div>
+  <div class="col g8"><span class="lbl">Data</span><div class="card list">
+   <a class="item" href="${SHEET_URL}" target="_blank" rel="noopener"><span class="grow" style="font-size:15px;font-weight:600">Rediger ingrediensliste</span><span style="color:var(--mute)">${I.chev}</span></a>
+   <button class="item" data-act="go" data-arg="kilder"><span class="col grow" style="gap:1px"><span style="font-size:15px;font-weight:600">Kilder</span><span class="sub">Monash · Haukeland (NKFM) · Open Food Facts</span></span><span style="color:var(--mute)">${I.chev}</span></button>
+   <button class="item" data-act="clear" style="color:var(--hoyt);font-size:15px;font-weight:600">${S.clearArm?"Trykk igjen for å tømme historikken":"Tøm historikk"}</button>
+  </div></div></div>`;
+};
+V.kilder = () => `<div class="col g14"><button class="back" data-act="back">${I.back}Innstillinger</button><h1>Kilder</h1>
+ <div class="card list">${[["Haukeland universitetssjukehus (NKFM)","FODMAP-matvarelister, juni 2026. Grunnlaget for de fleste vurderingene.","https://www.helse-bergen.no/4a2310/contentassets/76db3e9f0a644f2bba480e25261e3519/matvarelister_juni-26.pdf"],["Haukeland (NKFM) 2021","Kostbrosjyre lav FODMAP – brukt for drikke, sauser, urter og snacks.","https://www.helse-bergen.no/4968e2/siteassets/seksjon/nasjonal-kompetansetjeneste-for-funksjonell-mage-tarmsykdommer/documents/kostbrosjyre-lav-fodmap---mars--21.pdf"],["Haukeland – grunnleggende råd ved IBS","Grunnlaget for lilla hjerte: fet og sterk mat, koffein, alkohol, kullsyre og uløselig fiber kan gi plager.","https://helse-bergen.no/4930f9/contentassets/76db3e9f0a644f2bba480e25261e3519/grunnleggende-rad-25---revidert-etter-brukerrep.pdf"],["Monash University","Laboratorietester av matvarer og porsjoner.","https://monashfodmap.com"],["Open Food Facts","Produktnavn, bilder og ingredienslister.","https://no.openfoodfacts.org"],["Ingredienslista","Alle 330 ingredienser med farge, mengde, skånsomhet, bytter og kilde.",SHEET_URL]].map(k=>`<a class="item" href="${k[2]}" target="_blank" rel="noopener" style="align-items:flex-start"><span class="col g4 grow"><span style="font-size:15px;font-weight:700">${k[0]}</span><span class="sub" style="font-size:13px;line-height:1.4">${k[1]}</span></span><span style="color:var(--mute)">${I.chev}</span></a>`).join("")}</div>
+ <span class="sub" style="line-height:1.45">Rekkefølgen ved uenighet: den strengeste vurderingen vinner. Grått betyr at appen ikke vet nok, og regnes aldri som trygt.</span></div>`;
+
+V.slaa = () => {
+  const tabs=`<div class="tabs" role="tablist"><button class="tab ${S.lookTab==="varer"?"on":""}" role="tab" aria-selected="${S.lookTab==="varer"}" data-act="lookTab" data-arg="varer">Ingredienser og varer</button><button class="tab ${S.lookTab==="opp"?"on":""}" role="tab" aria-selected="${S.lookTab==="opp"}" data-act="lookTab" data-arg="opp">Oppskrifter</button></div>`;
+  if(S.lookTab==="varer") return `<div class="col g14"><h1>Slå opp</h1>${tabs}
+   <label class="search">${I.search}<span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Søk etter ingrediens eller vare</span><input id="lookQ" value="${esc(S.lookQ)}" placeholder="Ingrediens eller vare, f.eks. inulin"></label>
+   <div id="lookOut" class="col g14">${lookOut()}</div></div>`;
+  return `<div class="col g14"><h1>Slå opp</h1>${tabs}
+   <label class="search">${I.search}<span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Hva har du lyst på?</span><input id="recQ" value="${esc(S.recQ)}" placeholder="Hva har du lyst på? F.eks. pannekaker"></label>
+   <div class="hs" role="group" aria-label="Kategori">${RCATS.map(c=>`<button class="chip ${S.recCat===c?"on":""}" aria-pressed="${S.recCat===c}" data-act="recCat" data-arg="${c}">${c}</button>`).join("")}</div>
+   <div id="recOut">${recOut()}</div></div>`;
+};
+function lookOut(){
+  const q=S.lookQ.trim().toLowerCase();
+  if(!q) return `<div class="empty">Søk etter en ingrediens (f.eks. «inulin», «E420») eller en vare (f.eks. «semper»).</div>`;
+  const rows=ROWS.filter(r=>r.n.toLowerCase().includes(q)||r.s.some(s=>s.toLowerCase().includes(q)))
+    .sort((a,b)=>(a.n.toLowerCase().startsWith(q)?0:1)-(b.n.toLowerCase().startsWith(q)?0:1)||a.n.localeCompare(b.n,"nb"));
+  const ps=PRODUCTS.filter(p=>(p.brand+" "+p.name+" "+p.cat).toLowerCase().includes(q)||(q.length>=3&&p.ing.toLowerCase().includes(q)));
+  const f=S.lookFilter;
+  const ch=(k,l)=>`<button class="chip ${f===k?"on":""}" aria-pressed="${f===k}" data-act="lookF" data-arg="${k}">${l}</button>`;
+  return `<div class="chips">${ch("alt","Alt")}${ch("ing","Ingredienser · "+rows.length)}${ch("var","Varer · "+ps.length)}</div>
+  ${f!=="var"?`<div class="col g6"><span class="lbl">Ingredienser</span>${rows.length?`<div class="card list">${rows.slice(0,f==="ing"?40:5).map(r=>{const e=eff(r);const hit=r.n.toLowerCase().includes(q)?"":r.s.find(s=>s.toLowerCase().includes(q));return `<button class="item" data-act="openRow" data-arg="${esc(r.n)}">${dot(e)}<span class="col grow" style="gap:1px"><span style="font-size:15px;font-weight:700">${esc(r.n[0].toUpperCase()+r.n.slice(1))}</span><span class="sub">${hit?"Også kalt «"+esc(hit)+"»":esc(r.ok?"OK: "+r.ok:(r.f==="Ingen"?"Ingen FODMAP":r.f))}</span></span>${tag(e)}</button>`}).join("")}</div>${f==="alt"&&rows.length>5?`<button class="chip" data-act="lookF" data-arg="ing" style="align-self:flex-start">Vis alle ${rows.length}</button>`:""}`:`<div class="card empty">Ingen ingrediens heter «${esc(S.lookQ)}». En ingrediens appen ikke kjenner blir grå.</div>`}</div>`:""}
+  ${f!=="ing"?`<div class="col g6"><div class="row sb"><span class="lbl">Varer</span><span class="sub">fra Open Food Facts</span></div>${ps.length?ps.map(p=>{const a=pRate(p);return prodRow(p,p.size+" · "+(a.overall==="Lav"?"alle "+a.tree.length+" ingredienser lave":countLine(a.counts)))}).join(""):`<div class="card empty">Ingen varer i demoen matcher. I appen søkes det i hele Open Food Facts.</div>`}</div>`:""}`;
+}
+function recOut(){
+  const q=S.recQ.trim().toLowerCase();
+  const rs=RECIPES.filter(r=>(S.recCat==="Alle"||r.cat===S.recCat)&&(!q||(r.title+" "+r.cat+" "+r.ing.map(i=>i.t).join(" ")).toLowerCase().includes(q)));
+  if(!rs.length) return `<div class="empty">${q?`Ingen oppskrifter på «${esc(S.recQ)}» i demoen ennå.`:`Ingen oppskrifter i «${esc(S.recCat)}» i demoen ennå.`}</div>`;
+  return `<div class="col g8"><span class="lbl">${q?"Treff":"Populært"}</span><div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${rs.map(r=>{const rr=recRating(r);return `<button class="card col g8" data-act="openR" data-arg="${r.id}" style="padding:10px;text-align:left;cursor:pointer;color:var(--ink)">${rimg(r,80)}<span class="col" style="gap:1px"><span style="font-size:15px;font-weight:700;line-height:1.2">${esc(r.title)}</span><span class="sub">${r.cat} · ${r.time}</span></span><span class="row g6">${pill(rr,true)}${rHeart(r)?heart():""}</span></button>`}).join("")}</div></div>`;
+}
+
+V.row = () => {
+  const r=byName[S.row]; const e=eff(r);
+  const alts=(r.b||[]).map(n=>byName[n]).filter(Boolean);
+  const scanned=S.history.map(h=>prod(h.pid)).filter(p=>p&&match(p.ing).length&&analyse(p.ing).tree.some(function f(n){return (n.rows||[]).includes(r)||n.kids.some(f)}));
+  return `<div class="col g14"><button class="back" data-act="back">${I.back}Tilbake</button>
+  <div class="row sb g12" style="align-items:flex-start"><div class="col g4"><h1 style="font-size:30px">${esc(r.n[0].toUpperCase()+r.n.slice(1))}</h1><span style="font-size:14px;color:#B8BEC4">${esc(r.f==="Ingen"?"Ingen FODMAP":r.f)} · ${esc(r.c.toLowerCase())}</span></div>${pill(e)}</div>
+  ${e!==r.r?`<span class="sub">Vurdert som ${r.r.toLowerCase()} i lista, men endret av innstillingene dine.</span>`:""}
+  ${r.note?`<div style="padding:14px;border-radius:18px;background:${COL[e][2]};display:flex;flex-direction:column;gap:6px"><span class="lbl" style="color:#B5A8A5">Hvorfor?</span><span style="font-size:14px;line-height:1.45">${esc(r.note)}</span></div>`:""}
+  ${r.s.length?`<div class="col g8"><span class="lbl">Andre navn på etiketten</span><div class="chips" style="gap:6px">${r.s.map(s=>`<span class="ing" style="background:#1B1F23;border:1px solid #2A2E33;cursor:default">${esc(s)}</span>`).join("")}</div></div>`:""}
+  ${alts.length?`<div class="col g8"><span class="lbl">Bytt ut med</span><div class="chips" style="gap:6px">${alts.map(x=>{const xe=eff(x);return `<button class="ing" data-act="openRow" data-arg="${esc(x.n)}" style="background:${COL[xe][2]};color:${COL[xe][1]};font-weight:700">${esc(x.n)}${x.ok&&xe!=="Lav"?" · "+esc(x.ok):""}</button>`}).join("")}</div></div>`:""}
+  <div class="card list"><div class="row g12" style="padding:12px 14px"><span class="sub grow" style="font-size:14px">OK mengde</span><span style="font-size:14px;font-weight:600">${esc(r.ok||(e==="Lav"?"Vanlig porsjon":"Ingen oppgitt"))}</span></div>
+   <div class="row g12" style="padding:12px 14px"><span class="sub grow" style="font-size:14px">Varer du har skannet med dette</span><span style="font-size:14px;font-weight:600">${scanned.length}</span></div>
+   <div class="row g12" style="padding:12px 14px"><span class="sub grow" style="font-size:14px">Skånsom for magen</span><span class="row g6" style="font-size:14px;font-weight:600">${r.k==="Ja"?heart()+" Ja":r.k}</span></div>
+   <div class="row g12" style="padding:12px 14px"><span class="sub grow" style="font-size:14px">Kilde</span><span style="font-size:14px;font-weight:600;text-align:right">${esc(r.src)}</span></div></div></div>`;
+};
+
+V.opp = () => {
+  const r=RECIPES.find(x=>x.id===S.rid); const rr=recRating(r); const saved=S.saved.r.includes(r.id);
+  return `<div class="col g16"><div class="row sb"><button class="back" data-act="back">${I.back}Oppskrifter</button><button class="icb" aria-label="${saved?"Fjern fra lagret":"Lagre oppskrift"}" aria-pressed="${saved}" data-act="saveR" data-arg="${r.id}" style="${saved?"color:var(--acc)":""}">${saved?I.savedFill:I.saved}</button></div>
+  ${rimg(r,180,22)}
+  <div class="col g6"><h1 style="font-size:28px">${esc(r.title)}</h1><span style="font-size:14px;color:#B8BEC4">${r.cat} · ${r.time} · ${r.yield}</span></div>
+  <div class="row g10" style="padding:10px 12px;border-radius:16px;background:${COL[rr][2]}">${pill(rr,true," FODMAP")}<span style="font-size:13px;color:#C9D6CE">${rr==="Lav"?`Alle ${r.ing.length} ingredienser er lave`:"Se ingrediensene under"}</span>${rHeart(r)?heart():""}</div>
+  <div class="lbl">Ingredienser og hva du kan kjøpe</div>
+  <div class="col g10">${r.ing.map(i=>{const ir=recIngRating(i);const p=i.p&&prod(i.p);const row=i.r&&byName[i.r];return `<div class="card col g8" style="padding:12px"><div class="row g10">${dot(ir)}<span style="font-size:16px;font-weight:700" class="grow">${esc(i.t)}</span>${row?`<button class="ing" data-act="openRow" data-arg="${esc(row.n)}" style="background:none;color:var(--mute);padding:4px 0">${I.chev}</button>`:""}</div>
+   ${p?`<button class="item" data-act="openP" data-arg="${p.id}" style="padding:8px;border-radius:12px;background:#1B1F23">${pimg(p,40)}<span class="col grow" style="gap:1px"><span class="brand">${esc(p.brand)}</span><span style="font-size:14px;font-weight:600">${esc(p.name)}, ${esc(p.size)}</span></span>${tag(pRate(p).overall,true)}</button>`:""}
+   ${i.warn?`<span class="sub" style="color:#B8BEC4;line-height:1.4">${esc(i.warn)}</span>`:""}</div>`}).join("")}</div>
+  <div class="lbl">Slik gjør du</div>
+  <ol style="margin:0;padding:0;list-style:none" class="col g12">${r.steps.map((s,k)=>`<li class="step"><span class="num">${k+1}</span><span style="font-size:15px;line-height:1.45;color:#E2E5E8">${esc(s)}</span></li>`).join("")}</ol>
+  ${r.serve.length||r.avoid.length?`<div class="lbl">Server med</div><div class="chips" style="gap:6px">${r.serve.map(s=>`<span class="ing" style="background:var(--lavb);color:var(--lavt);font-weight:700;cursor:default">${esc(s)}</span>`).join("")}${r.avoid.map(s=>`<span class="ing" style="background:var(--hoyb);color:var(--hoyt);font-weight:700;cursor:default">ikke ${esc(s)}</span>`).join("")}</div>`:""}
+  ${r.tip?`<span class="sub" style="line-height:1.4;font-size:13px">${esc(r.tip)}</span>`:""}
+  <span class="sub" style="line-height:1.45">${esc(r.src)} Ingrediensene er vurdert etter Haukeland (NKFM) og Monash.</span></div>`;
+};
+
+/* ---------- sheets (bottom panels) ---------- */
+function sheetHtml(){
+  if(S.sheet==="sim") return `<div class="scrim" data-act="closeSheet"></div><div class="sheet" role="dialog" aria-label="Simuler skann"><span class="lbl">Simuler skann</span>
+   ${PRODUCTS.map(p=>`<button class="item card" style="padding:10px 12px" data-act="doScan" data-arg="${p.id}">${pimg(p,40)}<span class="col grow" style="gap:1px"><span class="brand">${esc(p.brand)}</span><span style="font-size:15px;font-weight:700">${esc(p.name)}</span></span>${I.chev}</button>`).join("")}
+   <button class="item card" style="padding:10px 12px" data-act="doScan" data-arg="ukjent"><span class="img" style="width:40px;height:40px;background:#23272B;color:var(--ink);font-weight:700">?</span><span class="col grow" style="gap:1px"><span class="brand">UKJENT</span><span style="font-size:15px;font-weight:700">Vare som mangler data</span></span>${I.chev}</button>
+   <button class="big ghost" data-act="closeSheet">Avbryt</button></div>`;
+  if(S.sheet==="ean") return `<div class="scrim" data-act="closeSheet"></div><form class="sheet" id="eanForm" role="dialog" aria-label="Skriv inn strekkode"><label class="col g8"><span class="lbl">Skriv inn strekkode</span><span class="search"><input id="eanIn" inputmode="numeric" placeholder="f.eks. 7032069740125" autocomplete="off"></span></label><span class="sub">Prøv 7032069740125 eller 7310100565983.</span><button class="big light" type="submit">Søk</button><button class="big ghost" type="button" data-act="closeSheet">Avbryt</button></form>`;
+  return "";
+}
+
+/* ---------- render ---------- */
+const TOP = {historikk:"hist",slaa:"ingr",row:"ingr",opp:"ingr",skanner:"scan",vare:"scan",ingendata:"scan",les:"scan",lagret:"saved",innst:"set",kilder:"set"};
+function render(keepScroll){
+  const v=document.getElementById("view"); const st=v.scrollTop;
+  v.innerHTML=V[S.view]();
+  if(!keepScroll) v.scrollTop=0; else v.scrollTop=st;
+  const t=TOP[S.view];
+  const b=(k,l,go)=>`<button class="${t===k?"on":""}" aria-label="${l}" ${t===k?'aria-current="page"':""} data-act="tab" data-arg="${go}">${I[k]}</button>`;
+  document.getElementById("nav").innerHTML=b("hist","Historikk","historikk")+b("ingr","Slå opp","slaa")+`<button class="scan" aria-label="Skann" ${t==="scan"?'aria-current="page"':""} data-act="tab" data-arg="skanner">${I.scan}</button>`+b("saved","Lagret","lagret")+b("set","Innstillinger","innst");
+  document.getElementById("layer").innerHTML=sheetHtml();
+  if(S.sheet==="ean"){const i=document.getElementById("eanIn");i&&i.focus();}
+}
+function go(view,push=true){ if(push&&S.view!==view) S.stack.push({view:S.view,pid:S.pid,rid:S.rid,row:S.row}); S.view=view; S.clearArm=false; render(); }
+function back(){ const p=S.stack.pop(); if(!p){go("historikk",false);return;} Object.assign(S,p); render(); }
+function addHistory(pid){ S.history=S.history.filter(h=>!(h.pid===pid&&h.day==="I dag")); const d=new Date(); S.history.unshift({pid,day:"I dag",time:String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")}); }
+
+const app=document.getElementById("app");
+app.addEventListener("click",ev=>{
+  const el=ev.target.closest("[data-act]"); if(!el||el.disabled) return;
+  const a=el.dataset.act, g=el.dataset.arg;
+  switch(a){
+    case "tab": S.stack=[]; S.sheet=null; go(g,false); break;
+    case "go": go(g); break;
+    case "back": back(); break;
+    case "openP": S.pid=g; go("vare"); break;
+    case "openCustom": S.pid="custom"; go("vare"); break;
+    case "openR": S.rid=g; go("opp"); break;
+    case "openRow": S.row=g; go("row"); break;
+    case "histF": S.histF=g; render(true); break;
+    case "lookTab": S.lookTab=g; render(true); break;
+    case "lookF": S.lookFilter=g; document.getElementById("lookOut").innerHTML=lookOut(); break;
+    case "recCat": S.recCat=g; render(true); break;
+    case "saveP": { const i=S.saved.p.indexOf(g); if(i>-1){S.saved.p.splice(i,1);toast("Fjernet fra lagret");} else {S.saved.p.unshift(g);toast("Lagret");} render(true); break; }
+    case "saveR": { const i=S.saved.r.indexOf(g); if(i>-1){S.saved.r.splice(i,1);toast("Fjernet fra lagret");} else {S.saved.r.unshift(g);toast("Lagret");} render(true); break; }
+    case "trig": S.triggers[g]=!S.triggers[g]; render(true); break;
+    case "sw": S[g]=!S[g]; if(g==="skanSom"&&!S.skanSom&&S.histF==="heart")S.histF="alle"; render(true); break;
+    case "clear": if(S.clearArm){S.history=[];S.clearArm=false;toast("Historikken er tømt");render(true);} else {S.clearArm=true;render(true);} break;
+    case "sheet": S.sheet=g; render(true); break;
+    case "closeSheet": S.sheet=null; render(true); break;
+    case "doScan": S.sheet=null; S.inputBar=""; if(g==="ukjent"){go("ingendata");} else {addHistory(g); S.pid=g; go("vare");} break;
+    case "useLes": { const ar=analyse(S.lesText); S.custom={id:"custom",brand:"FRA DITT BILDE",name:"Din vare",size:ar.tree.length+" ingredienser lest",ean:"",cat:"",src:"Ditt bilde av ingredienslisten",ing:S.lesText,a:ar}; S.history=S.history.filter(h=>h.pid!=="custom"); addHistory("custom"); S.pid="custom"; go("vare"); break; }
+    case "toast": toast(g); break;
+  }
+});
+app.addEventListener("input",ev=>{
+  const id=ev.target.id;
+  if(id==="histQ"){S.histQ=ev.target.value; const v=document.createElement("div"); v.innerHTML=V.historikk(); document.getElementById("histList").innerHTML=v.querySelector("#histList").innerHTML;}
+  if(id==="lookQ"){S.lookQ=ev.target.value; S.lookFilter="alt"; document.getElementById("lookOut").innerHTML=lookOut();}
+  if(id==="recQ"){S.recQ=ev.target.value; document.getElementById("recOut").innerHTML=recOut();}
+  if(id==="lesText"){S.lesText=ev.target.value; document.getElementById("lesOut").innerHTML=lesOut(analyse(S.lesText));}
+});
+app.addEventListener("submit",ev=>{
+  if(ev.target.id!=="eanForm") return; ev.preventDefault();
+  const v=document.getElementById("eanIn").value.replace(/\D/g,""); S.sheet=null;
+  const p=PRODUCTS.find(x=>x.ean&&x.ean===v);
+  if(p){addHistory(p.id);S.pid=p.id;go("vare");} else {S.inputBar=v;go("ingendata");}
+});
+render();
+}
+</script>
+</body>
+</html>
