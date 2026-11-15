@@ -108,7 +108,7 @@ rep('    case "doScan":', '    case "doScanDemo":')
 real = open(f"{ROOT}/app-src/real.js", encoding="utf-8").read().replace("__VERSION__", version)
 tail = "render();\n}\n</script>"
 assert s.count(tail) == 1
-expose = "\nglobalThis.__mage={analyse,PRODUCTS,RECIPES,ROWS,S,V,go,render,lookup,fromOFF,tidyOcr,pRate,recRating};\n" if test else "\n"
+expose = "\nglobalThis.MageEngine={analyse,match,ROWS,byName,hardFlags,pRate};" + ("\nglobalThis.__mage={analyse,PRODUCTS,RECIPES,ROWS,S,V,go,render,lookup,fromOFF,tidyOcr,pRate,recRating,hardFlags};\n" if test else "\n")
 s = s.replace(tail, real + "\nrender();" + expose + "}\n</script>")
 s = s.replace("<script>\n{", '<script src="vendor/zxing.min.js"></script>\n<script>\n{', 1)
 

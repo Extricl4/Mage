@@ -75,6 +75,8 @@ nav.bar button.scan{width:88px;height:88px;border-radius:30px;background:var(--a
 textarea{width:100%;min-height:150px;border-radius:16px;background:#EDE9E3;color:#2A2622;border:0;padding:14px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;resize:vertical}
 :focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .step{display:flex;gap:12px}.num{width:28px;height:28px;border-radius:14px;background:#23272B;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0}
+.hardm{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:9px;background:#3A2516;color:var(--hard);font-size:12px;font-weight:800;flex:none}
+:root{--hard:#FF9F5A}
 </style>
 </head>
 <body>
@@ -220,10 +222,27 @@ function gentleState(a){
   a.tree.forEach(walk);
   return bad?"Nei":(ja?"Ja":"Nøytral");
 }
-const pHeart = p => { const a=pRate(p); return a.overall==="Lav" && gentleState(a)==="Ja"; };
+/* orange marker: can be hard on a sensitive stomach even when FODMAP is low (Haukeland: fat, strong food, caffeine, alcohol, carbonation) */
+const HTXT = {"Mye fett":"Fet mat fordøyes sakte og kan gi oppfylthet, oppblåsthet, ubehag og kvalme.","Kullsyre":"Kullsyre kan gi luft og oppblåsthet. Haukeland anbefaler å begrense det.","Alkohol":"Haukeland anbefaler å begrense alkohol ved IBS.","Koffein":"Haukeland anbefaler maks 3 kopper kaffe eller te med koffein om dagen ved IBS."};
+function hardFlags(p){
+  if(!p) return [];
+  const a=pRate(p), out=[], fat=(typeof p.fat==="number")?p.fat:null;
+  const add=(t,txt,alt)=>{ if(!out.some(o=>o.t===t)) out.push({t,txt,alt}); };
+  const walk=ns=>(ns||[]).forEach(n=>{ (n.rows||[]).forEach(r=>{ if(r.h&&r.h.length&&!(r.h[0]==="Mye fett"&&fat!==null)) add(r.h[0],r.h[1],r.h[2]); }); walk(n.kids); });
+  walk(a.tree);
+  if(fat!==null&&fat>=10) add("Mye fett", `${String(Math.round(fat*10)/10).replace(".",",")} g fett per 100 g. ${HTXT["Mye fett"]}`, /kjøttdeig/i.test(p.name||"")?"karbonadedeig":"");
+  const c=(p.cats||[]).join(" ");
+  if(/en:(carbonated-drinks|sodas|carbonated-waters)/.test(c)) add("Kullsyre",HTXT.Kullsyre,"vann");
+  if(/en:alcoholic-beverages/.test(c)) add("Alkohol",HTXT.Alkohol,"");
+  if(/en:(energy-drinks|coffees)/.test(c)) add("Koffein",HTXT.Koffein,"");
+  return out;
+}
+const rowHard = r => !!(r&&r.h&&r.h.length);
+const ingHard = i => i.p ? hardFlags(prod(i.p)).length>0 : rowHard(byName[i.r]);
+const pHeart = p => { const a=pRate(p); return a.overall==="Lav" && gentleState(a)==="Ja" && !hardFlags(p).length; };
 function ingK(i){ if(i.p){ const pp=prod(i.p), a=pRate(pp); return a.overall==="Lav"?gentleState(a):"Nei"; } return byName[i.r].k; }
 const NO_HEART_CATS = ["Godteri","Kaker","Snacks"];
-const rHeart = r => { if(r.noHeart||NO_HEART_CATS.includes(r.cat)||recRating(r)!=="Lav") return false; const ks=r.ing.map(ingK); return ks.every(k=>k!=="Nei") && ks.includes("Ja"); };
+const rHeart = r => { if(r.noHeart||r.ing.some(ingHard)||NO_HEART_CATS.includes(r.cat)||recRating(r)!=="Lav") return false; const ks=r.ing.map(ingK); return ks.every(k=>k!=="Nei") && ks.includes("Ja"); };
 function recIngRating(i){ let r= i.p? pRate(prod(i.p)).overall : eff(byName[i.r]); if(i.ok&&r==="Middels") r="Lav"; return r; }
 const recRating = r => worst(r.ing.map(recIngRating));
 
@@ -474,6 +493,7 @@ const dot = r => `<span class="dot" style="background:${COL[r][0]}"></span>`;
 const tag = (r,whole) => `<span class="tag" style="color:${COL[r][1]}">${word(r,whole)}</span>`;
 const pill = (r,whole,extra="") => `<span class="pill" style="background:${COL[r][2]};color:${COL[r][1]}">${word(r,whole)}${extra}</span>`;
 const heart = () => `<span class="heart" role="img" aria-label="Skånsom">${I.heart}</span>`;
+const hardMark = (title="Kan være tung for magen") => `<span class="hardm" role="img" aria-label="${title}" title="${title}">!</span>`;
 const pimg = (p,s=48) => p.id==="custom"? `<span class="img" style="width:${s}px;height:${s}px;background:#2A2E33;color:#C9CDD2">${I.text}</span>` : `<span class="img" role="img" aria-label="Illustrasjon av ${esc(p.brand+" "+p.name)}" style="width:${s}px;height:${s}px;overflow:hidden;border-radius:${Math.round(s/4)}px">${ART.pack(p)}</span>`;
 const rimg = (r,h,rad=12) => `<span class="img" role="img" aria-label="Illustrasjon av ${esc(r.title)}" style="height:${h}px;width:100%;overflow:hidden;border-radius:${rad}px">${ART.dish(r)}</span>`;
 const countLine = c => ["Høy","Middels","Ikke vurdert","Lav"].filter(k=>c[k]).map(k=>c[k]+" "+({"Høy":"høy","Middels":"middels","Ikke vurdert":"ikke vurdert","Lav":"lav"}[k])).join(" · ");
@@ -483,7 +503,7 @@ function prodRow(p,sub){
   const a=pRate(p);
   return `<button class="item card" style="padding:10px 12px" data-act="openP" data-arg="${p.id}">${pimg(p)}
    <span class="col g4 grow" style="gap:1px"><span class="brand">${esc(p.brand)}</span><span style="font-size:15px;font-weight:700">${esc(p.name)}</span><span class="sub">${esc(sub||p.size)}</span></span>
-   <span class="row g6">${pHeart(p)?heart():""}${tag(a.overall,true)}</span></button>`;
+   <span class="row g6">${pHeart(p)?heart():""}${hardFlags(p).length?hardMark():""}${tag(a.overall,true)}</span></button>`;
 }
 
 /* ---------- screens ---------- */
@@ -548,6 +568,7 @@ V.vare = () => {
     </div>
     <div class="row sb g10" style="padding:10px 12px;border-radius:16px;background:${COL[r][2]}">${pill(r,true," FODMAP")}<span style="font-size:13px;color:#D6C9C6;text-align:right">${countLine(a.counts)}</span></div>
     ${hrt?`<div class="row g10" style="padding:10px 12px;border-radius:16px;border:1px solid #3A3150;background:#17141F;color:var(--pur);font-size:14px;font-weight:600">${heart()} Skånsom for magen – alle ingrediensene er milde</div>`:""}
+    ${(()=>{ const hf=hardFlags(p); if(!hf.length) return ""; return `<div class="col g8" style="padding:12px 14px;border-radius:16px;border:1px solid #4A3322;background:#1F1712"><span class="row g8" style="color:var(--hard);font-size:14px;font-weight:700">${hardMark()} Kan være tung for magen${r==="Lav"?" – selv om den er lav i FODMAP":""}</span>${hf.map(f=>`<span style="font-size:13px;line-height:1.45;color:#E6D3C4"><b style="color:var(--hard)">${esc(f.t)}.</b> ${esc(f.txt)}${f.alt&&byName[f.alt]?` <button class="ing" data-act="openRow" data-arg="${esc(f.alt)}" style="background:#24301F;color:#8FE3AE;font-weight:700;padding:2px 8px;margin-left:2px">Prøv heller ${esc(f.alt)}</button>`:""}</span>`).join("")}</div>`; })()}
     ${isLF(p)&&p.id!=="custom"?`<span class="sub" style="margin-top:-4px">Varen er merket laktosefri, så melk i ingredienslisten regnes som laktosefri.</span>`:""}
     <span class="sub" style="margin-top:-4px">Data: ${esc(p.src)} · vurdert etter Monash og Haukeland (NKFM)</span>
     <div style="height:1px;background:#2E2321"></div>
@@ -578,10 +599,10 @@ function lesOut(a){
 
 V.lagret = () => {
   const ps=S.saved.p.map(prod).filter(Boolean), rs=S.saved.r.map(id=>RECIPES.find(r=>r.id===id)).filter(Boolean);
-  const card=(img,brand,name,r,act,arg,h)=>`<button class="card col g8" data-act="${act}" data-arg="${arg}" style="padding:12px;text-align:left;cursor:pointer;color:var(--ink)">${img}<span class="col" style="gap:1px"><span class="brand">${esc(brand)}</span><span style="font-size:15px;font-weight:700;line-height:1.2">${esc(name)}</span></span><span class="row g6">${pill(r,true)}${h?heart():""}</span></button>`;
+  const card=(img,brand,name,r,act,arg,h)=>`<button class="card col g8" data-act="${act}" data-arg="${arg}" style="padding:12px;text-align:left;cursor:pointer;color:var(--ink)">${img}<span class="col" style="gap:1px"><span class="brand">${esc(brand)}</span><span style="font-size:15px;font-weight:700;line-height:1.2">${esc(name)}</span></span><span class="row g6">${pill(r,true)}${h===2?hardMark():h?heart():""}</span></button>`;
   const n=ps.length+rs.length;
   return `<div class="col g16"><div class="row sb"><h1>Lagret</h1><span class="sub" style="font-size:14px">${n} lagret</span></div>
-  ${n?`<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${ps.map(p=>{const r=pRate(p).overall;return card(`<span class="img" style="height:72px;width:100%;overflow:hidden">${ART.pack(p)}</span>`,p.brand,p.name,r,"openP",p.id,pHeart(p))}).join("")}${rs.map(x=>{const r=recRating(x);return card(rimg(x,72),"OPPSKRIFT",x.title,r,"openR",x.id,rHeart(x))}).join("")}</div>`
+  ${n?`<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">${ps.map(p=>{const r=pRate(p).overall;return card(`<span class="img" style="height:72px;width:100%;overflow:hidden">${ART.pack(p)}</span>`,p.brand,p.name,r,"openP",p.id,pHeart(p)?1:hardFlags(p).length?2:0)}).join("")}${rs.map(x=>{const r=recRating(x);return card(rimg(x,72),"OPPSKRIFT",x.title,r,"openR",x.id,rHeart(x))}).join("")}</div>`
    :`<div class="empty">Du har ikke lagret noe ennå. Trykk på bokmerket på en vare eller oppskrift.</div>`}</div>`;
 };
 
@@ -638,12 +659,13 @@ V.row = () => {
   return `<div class="col g14"><button class="back" data-act="back">${I.back}Tilbake</button>
   <div class="row sb g12" style="align-items:flex-start"><div class="col g4"><h1 style="font-size:30px">${esc(r.n[0].toUpperCase()+r.n.slice(1))}</h1><span style="font-size:14px;color:#B8BEC4">${esc(r.f==="Ingen"?"Ingen FODMAP":r.f)} · ${esc(r.c.toLowerCase())}</span></div>${pill(e)}</div>
   ${e!==r.r?`<span class="sub">Vurdert som ${r.r.toLowerCase()} i lista, men endret av innstillingene dine.</span>`:""}
+  ${rowHard(r)?`<div class="col g6" style="padding:12px 14px;border-radius:16px;border:1px solid #4A3322;background:#1F1712"><span class="row g8" style="color:var(--hard);font-size:14px;font-weight:700">${hardMark()} Kan være tung for magen: ${esc(r.h[0])}</span><span style="font-size:13px;line-height:1.45;color:#E6D3C4">${esc(r.h[1])}</span>${r.h[2]&&byName[r.h[2]]?`<button class="ing" data-act="openRow" data-arg="${esc(r.h[2])}" style="align-self:flex-start;background:#24301F;color:#8FE3AE;font-weight:700">Prøv heller ${esc(r.h[2])}</button>`:""}</div>`:""}
   ${r.note?`<div style="padding:14px;border-radius:18px;background:${COL[e][2]};display:flex;flex-direction:column;gap:6px"><span class="lbl" style="color:#B5A8A5">Hvorfor?</span><span style="font-size:14px;line-height:1.45">${esc(r.note)}</span></div>`:""}
   ${r.s.length?`<div class="col g8"><span class="lbl">Andre navn på etiketten</span><div class="chips" style="gap:6px">${r.s.map(s=>`<span class="ing" style="background:#1B1F23;border:1px solid #2A2E33;cursor:default">${esc(s)}</span>`).join("")}</div></div>`:""}
   ${alts.length?`<div class="col g8"><span class="lbl">Bytt ut med</span><div class="chips" style="gap:6px">${alts.map(x=>{const xe=eff(x);return `<button class="ing" data-act="openRow" data-arg="${esc(x.n)}" style="background:${COL[xe][2]};color:${COL[xe][1]};font-weight:700">${esc(x.n)}${x.ok&&xe!=="Lav"?" · "+esc(x.ok):""}</button>`}).join("")}</div></div>`:""}
   <div class="card list"><div class="row g12" style="padding:12px 14px"><span class="sub grow" style="font-size:14px">OK mengde</span><span style="font-size:14px;font-weight:600">${esc(r.ok||(e==="Lav"?"Vanlig porsjon":"Ingen oppgitt"))}</span></div>
    <div class="row g12" style="padding:12px 14px"><span class="sub grow" style="font-size:14px">Varer du har skannet med dette</span><span style="font-size:14px;font-weight:600">${scanned.length}</span></div>
-   <div class="row g12" style="padding:12px 14px"><span class="sub grow" style="font-size:14px">Skånsom for magen</span><span class="row g6" style="font-size:14px;font-weight:600">${r.k==="Ja"?heart()+" Ja":r.k}</span></div>
+   <div class="row g12" style="padding:12px 14px"><span class="sub grow" style="font-size:14px">Skånsom for magen</span><span class="row g6" style="font-size:14px;font-weight:600">${r.k==="Ja"?heart()+" Ja":rowHard(r)?hardMark()+" Kan være tung":r.k}</span></div>
    <div class="row g12" style="padding:12px 14px"><span class="sub grow" style="font-size:14px">Kilde</span><span style="font-size:14px;font-weight:600;text-align:right">${esc(r.src)}</span></div></div></div>`;
 };
 
@@ -654,7 +676,7 @@ V.opp = () => {
   <div class="col g6"><h1 style="font-size:28px">${esc(r.title)}</h1><span style="font-size:14px;color:#B8BEC4">${r.cat} · ${r.time} · ${r.yield}</span></div>
   <div class="row g10" style="padding:10px 12px;border-radius:16px;background:${COL[rr][2]}">${pill(rr,true," FODMAP")}<span style="font-size:13px;color:#C9D6CE">${rr==="Lav"?`Alle ${r.ing.length} ingredienser er lave`:"Se ingrediensene under"}</span>${rHeart(r)?heart():""}</div>
   <div class="lbl">Ingredienser og hva du kan kjøpe</div>
-  <div class="col g10">${r.ing.map(i=>{const ir=recIngRating(i);const p=i.p&&prod(i.p);const row=i.r&&byName[i.r];return `<div class="card col g8" style="padding:12px"><div class="row g10">${dot(ir)}<span style="font-size:16px;font-weight:700" class="grow">${esc(i.t)}</span>${row?`<button class="ing" data-act="openRow" data-arg="${esc(row.n)}" style="background:none;color:var(--mute);padding:4px 0">${I.chev}</button>`:""}</div>
+  <div class="col g10">${r.ing.map(i=>{const ir=recIngRating(i);const p=i.p&&prod(i.p);const row=i.r&&byName[i.r];return `<div class="card col g8" style="padding:12px"><div class="row g10">${dot(ir)}<span style="font-size:16px;font-weight:700" class="grow">${esc(i.t)}</span>${ingHard(i)?hardMark(row&&row.h?row.h[0]:"Kan være tung for magen"):""}${row?`<button class="ing" data-act="openRow" data-arg="${esc(row.n)}" style="background:none;color:var(--mute);padding:4px 0">${I.chev}</button>`:""}</div>
    ${p?`<button class="item" data-act="openP" data-arg="${p.id}" style="padding:8px;border-radius:12px;background:#1B1F23">${pimg(p,40)}<span class="col grow" style="gap:1px"><span class="brand">${esc(p.brand)}</span><span style="font-size:14px;font-weight:600">${esc(p.name)}, ${esc(p.size)}</span></span>${tag(pRate(p).overall,true)}</button>`:""}
    ${i.warn?`<span class="sub" style="color:#B8BEC4;line-height:1.4">${esc(i.warn)}</span>`:""}</div>`}).join("")}</div>
   <div class="lbl">Slik gjør du</div>

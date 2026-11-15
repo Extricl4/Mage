@@ -92,7 +92,9 @@ ROWS = [
 ("vaniljesaus", "vaniljekrem", "Melk og meieri", "Laktose", HOY, "", "", H),
 ("kondensert melk", "sukret kondensert melk", "Melk og meieri", "Laktose", HOY, "", "", H),
 ("brunost", "geitost; gudbrandsdalsost; mysost; fløtemysost; prim; mysesmør", "Melk og meieri", "Laktose", HOY, "", "Haukeland lister brunost både som høy og under pålegg. Appen bruker den strengeste.", H),
-("laktosefrie meieriprodukter", "laktosefri; laktoseredusert; laktosefri melk; laktosefri yoghurt; laktosefri rømme; laktosefri kremost; laktosefri fløte; laktosefri kesam; laktosefri iskrem", "Melk og meieri", "Ingen", LAV, "", "Lav så lenge det ikke er tilsatt andre høy-ingredienser.", H),
+("laktosefrie meieriprodukter", "laktosefri; laktoseredusert; laktosefri melk; laktosefri yoghurt; laktosefri kremost; laktosefri kesam; laktosefri iskrem", "Melk og meieri", "Ingen", LAV, "", "Lav så lenge det ikke er tilsatt andre høy-ingredienser.", H),
+("laktosefri fløte og rømme", "laktosefri fløte; laktosefri kremfløte; laktosefri matfløte; laktosefri rømme; laktosefri lettrømme; laktosefri seterrømme; laktosefri crème fraîche", "Melk og meieri", "Ingen", LAV, "", "Lav i FODMAP, men fettrik.", H),
+("koffein", "energidrikk; koffeinholdig", "Drikke", "Ingen", LAV, "", "FODMAP-lav, men koffein kan gi mer uro i magen.", H),
 ("smør", "meierismør; setersmør; smørolje; ghee; melkefett", "Melk og meieri", "Ingen", LAV, "", "", H),
 ("margarin", "plantemargarin", "Fett og olje", "Ingen", LAV, "", "", H),
 ("hard ost", "ost; hvitost; gulost; norvegia; norvegiaost; jarlsberg; jarlsbergost; cheddar; cheddarost; parmesan; parmesanost; parmigiano reggiano; grana padano; pecorino; manchego; gouda; goudaost; edamer; edamerost; emmentaler; emmentalerost; gruyère; gruyere; ridderost; port salut; nøkkelost; snøfrisk lagret; revet ost; skiveost; pizzaost; osteblanding", "Melk og meieri", "Ingen", LAV, "", "Hard ost har nesten ikke laktose.", H),
@@ -198,7 +200,10 @@ ROWS = [
 ("rene oljer", "rapsolje; olivenolje; extra virgin olivenolje; solsikkeolje; kokosolje; sesamolje; peanøttolje; vegetabilsk olje; vegetabilske oljer; vegetabilsk fett; vegetabilske fettstoffer; palmeolje; palmefett; shea; sheafett; kokosfett; olje", "Fett og olje", "Ingen", LAV, "", "", H),
 
 # ---------- KJØTT, FISK, EGG ----------
-("kjøtt", "storfe; okse; svin; svinekjøtt; lam; vilt; kjøttdeig; skinke; bacon; spekeskinke; svinenakke; nakke; svinekam; ribbe; kjøttfett; roastbiff; hamburgerrygg; skinkestek; kokt skinke", "Kjøtt, fisk og egg", "Ingen", LAV, "", "Rent kjøtt er lav. Bearbeidet kjøtt sjekkes på løk, hvitløk og krydder.", H),
+("kjøtt", "storfe; okse; svin; svinekjøtt; lam; vilt; skinke; spekeskinke; svinenakke; nakke; svinekam; roastbiff; hamburgerrygg; skinkestek; kokt skinke", "Kjøtt, fisk og egg", "Ingen", LAV, "", "Rent kjøtt er lav. Bearbeidet kjøtt sjekkes på løk, hvitløk og krydder.", H),
+("kjøttdeig", "svinekjøttdeig; blandet kjøttdeig; storfekjøttdeig; kjøttdeig av storfe; kjøttdeig av svin; kjøttfarse; hamburgerdeig", "Kjøtt, fisk og egg", "Ingen", LAV, "", "Rent kjøtt er lavt i FODMAP, men vanlig kjøttdeig har ca. 14 % fett. Karbonadedeig har under 5 %.", H),
+("karbonadedeig", "karbonade; mager kjøttdeig; kyllingkjøttdeig; kalkunkjøttdeig; kjøttdeig av kylling; kjøttdeig av kalkun", "Kjøtt, fisk og egg", "Ingen", LAV, "", "Mager (under 5 % fett) – lettere for magen enn vanlig kjøttdeig.", H),
+("bacon og pølser", "bacon; baconterninger; pølse; pølser; wienerpølse; wienerpølser; grillpølse; grillpølser; salami; pepperoni; spekepølse; fårepølse; servelat; kjøttpølse; ribbe; flesk; sideflesk; svinesvor; kjøttfett; svinefett; smult", "Kjøtt, fisk og egg", "Ingen", LAV, "", "Rent kjøtt er lavt i FODMAP, men fettrikt. Pølser har ofte løk og melk – sjekk ingredienslisten.", H),
 ("fisk", "laks; torsk; sei; makrell; tunfisk; sardiner; sild", "Kjøtt, fisk og egg", "Ingen", LAV, "", "", H),
 ("skalldyr", "reker; krabbe; hummer; blåskjell; scampi", "Kjøtt, fisk og egg", "Ingen", LAV, "", "", H),
 ("egg", "eggehvite; eggeplomme; eggepulver; helegg", "Kjøtt, fisk og egg", "Ingen", LAV, "", "", H),
@@ -445,4 +450,35 @@ BYTT = {
  "fruktjuice fra konsentrat": ["appelsinjuice (ferskpresset)", "vann"],
  "glutenfritt mel": ["ris", "maisstivelse", "potetmel"], "aroma": [], "krydder (uspesifisert)": ["rene krydder"],
  "fennikel": ["sellerirot", "agurk"], "falafel": ["fast tofu"], "kremost med løk/hvitløk": ["laktosefrie meieriprodukter"],
+}
+
+# Kan være tung for magen selv om FODMAP er lav.
+# Kilde: Haukeland (NKFM) «Grunnleggende råd ved IBS»: fet mat og sterk mat kan gi økte symptomer,
+# begrens kaffe/te med koffein (maks 3 kopper), alkohol og kullsyreholdige drikker.
+FETT = "Fet mat fordøyes sakte og kan gi oppfylthet, oppblåsthet, ubehag og kvalme."
+STERK = "Sterk mat (capsaicin) kan gi magesmerter og diaré hos noen."
+HARD = {
+ "kjøttdeig": ("Mye fett", "Vanlig kjøttdeig har ca. 14 % fett. " + FETT, "karbonadedeig"),
+ "bacon og pølser": ("Mye fett", FETT, "kjøtt"),
+ "laktosefri fløte og rømme": ("Mye fett", FETT + " Bruk små mengder, eller lettrømme.", ""),
+ "fløte": ("Mye fett", FETT, ""),
+ "rømme": ("Mye fett", FETT, ""),
+ "iskrem": ("Mye fett", FETT, ""),
+ "hard ost": ("Mye fett", "Hard ost har ofte 25–35 % fett. " + FETT + " Spis små mengder.", ""),
+ "smør": ("Mye fett", "Smør er nesten bare fett. Bruk lite.", ""),
+ "majones": ("Mye fett", "Majones er nesten bare fett. " + FETT, ""),
+ "potetgull (naturell)": ("Mye fett", "Fritert – mye fett. " + FETT, "popcorn"),
+ "mørk sjokolade": ("Mye fett", "Sjokolade er fettrik og har litt koffein. Spis små mengder.", ""),
+ "melkesjokolade": ("Mye fett", "Sjokolade er fettrik og har litt koffein. Spis små mengder.", ""),
+ "kokosmelk": ("Mye fett", "Kokosmelk er fettrik. " + FETT, ""),
+ "chili": ("Sterkt", STERK, ""),
+ "sambal oelek": ("Sterkt", STERK, ""),
+ "sriracha": ("Sterkt", STERK, ""),
+ "kaffe": ("Koffein", "Haukeland anbefaler maks 3 kopper kaffe eller te med koffein om dagen ved IBS.", "peppermyntete"),
+ "koffein": ("Koffein", "Haukeland anbefaler å begrense koffein ved IBS.", ""),
+ "svart te": ("Koffein", "Haukeland anbefaler maks 3 kopper kaffe eller te med koffein om dagen ved IBS.", "peppermyntete"),
+ "vin": ("Alkohol", "Haukeland anbefaler å begrense alkohol ved IBS.", ""),
+ "øl": ("Alkohol", "Haukeland anbefaler å begrense alkohol ved IBS.", ""),
+ "brennevin": ("Alkohol", "Haukeland anbefaler å begrense alkohol ved IBS.", ""),
+ "brus uten fruktkonsentrat": ("Kullsyre", "Kullsyre kan gi luft og oppblåsthet. Haukeland anbefaler å begrense det.", "vann"),
 }

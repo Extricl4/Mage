@@ -16,6 +16,6 @@ put("/*__RECIPES__*/[]", open(ROOT + "/demo/recipes.js", encoding="utf-8").read(
 if test:
     a = "render();\n}\n</script>"
     assert html.count(a) == 1
-    html = html.replace(a, "render();\nglobalThis.__mage={analyse,PRODUCTS,RECIPES,ROWS,recRating,recIngRating,pRate,pHeart,rHeart,gentleState,ART,S,V,go,render,byName};\n}\n</script>")
+    html = html.replace(a, "render();\nglobalThis.__mage={analyse,PRODUCTS,RECIPES,ROWS,recRating,recIngRating,pRate,pHeart,rHeart,gentleState,ART,S,V,go,render,byName,hardFlags,match};\n}\n</script>")
 open(out, "w", encoding="utf-8").write(html)
 print(len(rows), "rows ->", out, len(html), "bytes")

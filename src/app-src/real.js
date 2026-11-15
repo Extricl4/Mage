@@ -1,7 +1,7 @@
 /* ================== REAL APP LAYER (camera, Open Food Facts, OCR, storage) ================== */
 const APP_VERSION = "__VERSION__";
 const LS = "mage.v1", LSP = "mage.products";
-const F = "code,product_name,product_name_no,product_name_nb,product_name_nn,generic_name,brands,quantity,ingredients_text,ingredients_text_no,ingredients_text_nb,ingredients_text_nn,ingredients_text_sv,ingredients_text_da,ingredients_text_en,image_front_small_url,image_front_url,categories_tags,categories,lang";
+const F = "code,product_name,product_name_no,product_name_nb,product_name_nn,generic_name,brands,quantity,ingredients_text,ingredients_text_no,ingredients_text_nb,ingredients_text_nn,ingredients_text_sv,ingredients_text_da,ingredients_text_en,image_front_small_url,image_front_url,categories_tags,categories,lang,nutriments";
 const OFF = "https://world.openfoodfacts.org";
 const SEED_IDS = new Set(PRODUCTS.map(p => p.id));
 const ALTS = {};
@@ -62,7 +62,8 @@ function fromOFF(o, ean) {
   }
   const cats = (o.categories_tags || []).filter(t => /^en:/.test(t));
   const catName = clean((o.categories || "").split(",").pop() || "");
-  return { id: "e" + ean, ean, brand: clean((o.brands || "").split(",")[0]).toUpperCase() || "UKJENT MERKE", name: name || "Ukjent navn", size: clean(o.quantity), cat: catName.toLowerCase(), cats, img: o.image_front_small_url || o.image_front_url || "", src: "Open Food Facts", ing: clean(ing), langNote, pack: "none", c1: "#2A2E33", c2: "#2A2E33" };
+  const fat = o.nutriments && typeof o.nutriments.fat_100g === "number" ? o.nutriments.fat_100g : undefined;
+  return { id: "e" + ean, ean, fat, brand: clean((o.brands || "").split(",")[0]).toUpperCase() || "UKJENT MERKE", name: name || "Ukjent navn", size: clean(o.quantity), cat: catName.toLowerCase(), cats, img: o.image_front_small_url || o.image_front_url || "", src: "Open Food Facts", ing: clean(ing), langNote, pack: "none", c1: "#2A2E33", c2: "#2A2E33" };
 }
 async function getJSON(url, opt = {}, ms = 9000) {
   const ac = new AbortController(); const t = setTimeout(() => ac.abort(), ms);

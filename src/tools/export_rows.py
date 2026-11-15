@@ -16,11 +16,12 @@ def load(src):
         if name in m.SKANSOM_JA: k = "Ja"
         elif name in m.SKANSOM_NOYTRAL or cat in m.SKANSOM_NOYTRAL_KAT: k = "Nøytral"
         else: k = "Nei"
+        if name in getattr(m, "HARD", {}): k = "Nei"
         if "Haukeland" in source and "Monash" in source: chk = "Haukeland + Monash"
         elif "Haukeland" in source: chk = "Haukeland"
         elif "NHI" in source: chk = "Haukeland (via NHI)"
         elif "Monash" in source: chk = "Monash"
         else: chk = "Ingen kilde – grå for sikkerhet"
         out.append({"n": name, "s": keep, "c": cat, "f": ftype, "r": rating, "ok": ok, "note": note,
-                    "src": source, "k": k, "b": m.BYTT.get(name, []), "chk": chk})
+                    "src": source, "k": k, "b": m.BYTT.get(name, []), "chk": chk, "h": list(getattr(m, "HARD", {}).get(name, ()))})
     return out
