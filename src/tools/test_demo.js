@@ -74,5 +74,8 @@ ok(!M.hardFlags({id:"y",name:"Karbonadedeig",ing:"storfekjøtt, salt",fat:4}).le
 ok(M.hardFlags({id:"z",name:"Pølse",ing:"svinekjøtt, bacon, salt"}).some(f=>f.t==="Mye fett"), "bacon flag via ingredients");
 ok(M.hardFlags({id:"w",name:"Brus",ing:"kullsyreholdig vann, sukker"}).some(f=>f.t==="Kullsyre"), "carbonation flag");
 ok(!M.pHeart({id:"v",name:"Smør",ing:"smør, salt"}), "no heart on fatty");
+ok(M.pRate({id:"s1",name:"Saft",ing:"vann, sukker, aroma",cats:["en:beverages"]}).overall==="Lav", "aroma in sweet product");
+ok(M.pRate({id:"s2",name:"Suppe",ing:"vann, potet, aroma",cats:["en:soups"]}).overall==="Ikke vurdert", "aroma in savoury stays grey");
+ok(A("oligofruktose") === "Høy", "FOS is high");
 console.log(fail ? "\n" + fail + " FAILED" : "\nALL PASSED (" + M.RECIPES.length + " recipes, " + M.PRODUCTS.length + " products, " + M.ROWS.length + " ingredients)");
 process.exit(fail ? 1 : 0);

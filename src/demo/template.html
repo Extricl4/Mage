@@ -167,6 +167,7 @@ function compound(name){
   }
   return out;
 }
+let CTX = {};
 function match(name,lf){
   let s=" "+norm(name)+" "; const found=[];
   for(const {t,r} of TERMS){
@@ -178,6 +179,7 @@ function match(name,lf){
   }
   if(!found.length&&/\be\d{3,4}[a-z]?\b/.test(s)) found.push(byName["andre E-nummer"]);
   if(!found.length) compound(name).forEach(r=>{ if(r&&!found.includes(r)) found.push(r); });
+  if(CTX.sweet){ const ai=found.indexOf(byName["aroma"]); if(ai>-1) found[ai]=byName["aroma med navngitt smak"]; }
   const l=name.toLowerCase();
   if(lf||/laktosefri|laktoseredusert/.test(l)) return found.map(r=> (r.f==="Laktose"&&r.c==="Melk og meieri")?byName["laktosefrie meieriprodukter"]:r);
   return found;
@@ -219,7 +221,8 @@ function rate(n,lf){
   n.unknown=!rows.length&&!n.kids.length;
   return n;
 }
-function analyse(text,lf){
+function analyse(text,lf,ctx){
+  CTX = ctx||{};
   const tree=parse(text).map(n=>rate(n,lf));
   const why=[];const seen=new Set();
   const walk=n=>{
@@ -235,7 +238,10 @@ function analyse(text,lf){
 }
 const prod = id => PRODUCTS.find(p=>p.id===id);
 const isLF = p => !!(p.lf||/laktosefri|laktoseredusert/i.test(p.name||""));
-const pRate = p => p.id==="custom"? p.a : analyse(p.ing,isLF(p));
+const SWEET = /en:(sweet|sugary|confectioner|chocolate|candies|biscuits|cakes|pastries|desserts|ice-creams|yogurts|dairy-desserts|breakfast-cereals|beverages|sodas|juices|nectars|jams|fruit-preserves|sweet-spreads|sweeteners|milks|fermented-milk|cereal-bars|energy-drinks)/;
+const SAVOURY = /en:(meals|soups|sauces|meats|sausages|pizzas|crisps|salty-snacks|condiments|cheeses|seasonings|spices|fishes|seafood|sandwiches|savory|salads|dips|broths|ready)/;
+const isSweet = p => { const c=(p.cats||[]).join(" "); return !!c && SWEET.test(c) && !SAVOURY.test(c); };
+const pRate = p => p.id==="custom"? p.a : analyse(p.ing||"",isLF(p),{sweet:isSweet(p)});
 /* purple heart: every counted ingredient is "Ja" or "Nøytral", at least one "Ja", nothing unknown */
 function gentleState(a){
   let ja=false, bad=false;

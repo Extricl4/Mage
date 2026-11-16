@@ -1,5 +1,5 @@
 /* Mage service worker – network first for the app (so updates show up), cache as offline fallback */
-const VERSION = "20261116-162315";
+const VERSION = "20261116-162534";
 const SHELL = "mage-shell-" + VERSION, IMG = "mage-img-v1";
 const FILES = ["./", "index.html", "vendor/zxing.min.js", "manifest.webmanifest", "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(SHELL).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });

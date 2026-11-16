@@ -60,7 +60,6 @@ rep('lesText:"Ingredienser: hvetemel, vann, rapsolje, sukker, gjær, salt, løkp
 # ---- product pictures ----
 rep('${ART.pack(p)}</span>`;\nconst rimg', '${packImg(p)}</span>`;\nconst rimg')
 rep('<span class="img" style="height:72px;width:100%;overflow:hidden">${ART.pack(p)}</span>', '<span class="img" style="height:72px;width:100%;overflow:hidden">${packImg(p)}</span>')
-rep('const pRate = p => p.id==="custom"? p.a : analyse(p.ing,isLF(p));', 'const pRate = p => p.id==="custom"? p.a : analyse(p.ing||"",isLF(p));')
 
 # ---- product page: language note + live alternatives ----
 rep('<span class="sub" style="margin-top:-4px">Data: ${esc(p.src)}', '${p.langNote?`<span class="sub" style="margin-top:-4px;color:var(--mid)">${esc(p.langNote)}</span>`:""}<span class="sub" style="margin-top:-4px">Data: ${esc(p.src)}')
