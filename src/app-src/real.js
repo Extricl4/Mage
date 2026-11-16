@@ -149,7 +149,9 @@ function offSearchSoon() {
     S.offBusy = true; refreshLook();
     try {
       const j = await getJSON(`${OFF}/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=24&fields=${F}&tagtype_0=countries&tag_contains_0=contains&tag_0=norway`, {}, 12000);
-      (j.products || []).map(o => fromOFF(o)).filter(x => x.ean && x.ing).forEach(x => { if (!PRODUCTS.some(p => p.id === x.id)) { x.tmp = true; PRODUCTS.push(x); } const p = PRODUCTS.find(p => p.id === x.id); p.sq = (p.sq || []).concat(q); });
+      let found = (j.products || []).map(o => fromOFF(o)).filter(x => x.ean && x.ing);
+      const no = found.filter(x => !x.langNote); if (no.length >= 3) found = no;   // prefer products with a Norwegian ingredient list
+      found.forEach(x => { if (!PRODUCTS.some(p => p.id === x.id)) { x.tmp = true; PRODUCTS.push(x); } const p = PRODUCTS.find(p => p.id === x.id); p.sq = (p.sq || []).concat(q); });
       S.offDone[q] = true;
     } catch (e) { S.offErr = true; }
     S.offBusy = false; refreshLook();
