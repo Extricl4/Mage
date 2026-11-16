@@ -6,7 +6,7 @@ const types = { ".html": "text/html", ".js": "text/javascript", ".json": "applic
 const srv = http.createServer((q, r) => { let f = path.join(ROOT, decodeURIComponent(q.url.split("?")[0])); if (f.endsWith("/")) f += "index.html"; fs.readFile(f, (e, d) => { if (e) { r.writeHead(404); r.end(); return; } r.writeHead(200, { "Content-Type": types[path.extname(f)] || "application/octet-stream" }); r.end(d); }); }).listen(8765);
 let fail = 0; const ok = (c, m) => { console.log((c ? "ok   " : "FAIL ") + m); if (!c) fail++; };
 
-const OFFP = { code: "7044610000008", product_name_no: "Tomatsuppe med løk", brands: "Testmerke", quantity: "500 ml", ingredients_text_no: "Vann, tomatpuré 20 %, _hvetemel_, løk, sukker, salt, krydder.", categories_tags: ["en:soups", "en:tomato-soups"], categories: "Supper, Tomatsupper", image_front_small_url: "" };
+const OFFP = { code: "7044610000008", product_name_no: "Tomatsuppe med løk", brands: "Testmerke", quantity: "500 ml", ingredients_text_no: "Vann, tomatpuré 20 %, _hvetemel_, løk, sukker, salt, krydder.", categories_tags: ["en:soups", "en:tomato-soups"], categories: "Supper, Tomatsupper", image_front_small_url: "", nutriments: { "energy-kj_100g": 250, "energy-kcal_100g": 60, fat_100g: 3, carbohydrates_100g: 8, sugars_100g: 4, proteins_100g: 2, salt_100g: 1.1 }, allergens_tags: ["en:gluten"] };
 const ALT = { code: "7000000000017", product_name_no: "Grønnsakssuppe uten løk", brands: "Snill", quantity: "400 ml", ingredients_text_no: "Vann, gulrot, potet, rapsolje, salt, maisstivelse.", categories_tags: ["en:soups"], categories: "Supper" };
 
 async function run(cam, fn) {
@@ -45,6 +45,8 @@ const txt = p => p.locator("#view").innerText();
     await page.waitForFunction(() => document.getElementById("altsOut") && /Grønnsakssuppe/.test(document.getElementById("altsOut").innerText), null, { timeout: 8000 });
     const t = await txt(page);
     ok(t.includes("Tomatsuppe med løk") && t.includes("HØY"), "OFF product rated HØY");
+    ok(/næringsinnhold per 100/i.test(t) && t.includes("Protein") && t.includes("Salt") && t.includes("1,1"), "nutrition table shown");
+    ok(t.includes("Allergener: gluten") && t.includes("Hele ingredienslisten"), "allergens + full ingredient text");
     ok(/prøv heller/i.test(t) && t.includes("Grønnsakssuppe uten løk"), "green alternative from OFF search");
     await page.screenshot({ path: SHOT + "/4-vare-off.png", fullPage: true });
     // manual barcode not in OFF → read ingredients → saved for that barcode

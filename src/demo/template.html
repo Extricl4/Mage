@@ -77,6 +77,7 @@ textarea{width:100%;min-height:150px;border-radius:16px;background:#EDE9E3;color
 .step{display:flex;gap:12px}.num{width:28px;height:28px;border-radius:14px;background:#23272B;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0}
 .hardm{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:9px;background:#3A2516;color:var(--hard);font-size:12px;font-weight:800;flex:none}
 :root{--hard:#FF9F5A}
+.fulling{background:#16191C;border:1px solid #2A2E33;border-radius:14px;padding:10px 14px}.fulling summary{font-size:14px;font-weight:600;cursor:pointer;color:#C9CDD2}.fulling p{margin:8px 0 0;font-size:13px;line-height:1.5;color:#D2D6DA}
 </style>
 </head>
 <body>
@@ -263,6 +264,14 @@ const NAME_HARD = [
 ];
 const LEAN = /(\blett|mager|karbonade|kylling|kalkun|light|fettredusert|\b0[,.]\d ?%|\b[1-5]([,.]\d)? ?%)/;
 const NO_ALC = /(alkoholfri|\b0[,.]0 ?%|zero alkohol|uten alkohol)/, NO_CAF = /(koffeinfri|decaf)/, NO_FIZZ = /(uten kullsyre|stille)/;
+/* nutrition table per 100 g/ml */
+function nutBlock(p){
+  const n = p.nut||[];
+  const head = `<div style="height:1px;background:#2E2321;margin-top:4px"></div><div class="lbl" style="color:#B5A8A5">Næringsinnhold per 100 ${p.ml?"ml":"g"}</div>`;
+  if(!n.length) return head+`<span class="sub" style="line-height:1.4">Næringsinnhold mangler i databasene for denne varen.</span>`;
+  const fmt = v => typeof v==="number" ? String(Math.round(v*10)/10).replace(".",",") : esc(String(v));
+  return head+`<div class="card list nut">${n.map(x=>`<div class="row g12" style="padding:10px 14px${x.sub?";padding-left:28px":""}"><span class="grow" style="font-size:14px;${x.sub?"color:var(--mute)":"font-weight:600"}">${esc(x.n)}</span><span style="font-size:14px;font-weight:600;${x.hl?"color:var(--hard)":""}">${fmt(x.v)} ${esc(x.u||"")}</span></div>`).join("")}</div>`;
+}
 function hardFlags(p){
   if(!p) return [];
   const a=pRate(p), out=[], fat=(typeof p.fat==="number")?p.fat:null, nm=(p.name||"").toLowerCase(), cats=((p.cats||[]).join(" ")+" "+(p.kcat||"")).toLowerCase();
@@ -615,7 +624,10 @@ V.vare = () => {
     <span class="sub" style="margin-top:-4px">Data: ${esc(p.src)} · vurdert etter Monash og Haukeland (NKFM)</span>
     <div style="height:1px;background:#2E2321"></div>
     <div class="lbl" style="color:#B5A8A5">Ingredienser</div>${chipsFor(a)}
+    ${p.ing&&p.id!=="custom"?`<details class="fulling"><summary>Hele ingredienslisten fra pakken</summary><p>${esc(p.ing)}</p></details>`:""}
+    ${(p.allergens&&p.allergens.length)||(p.traces&&p.traces.length)?`<div class="col g6">${p.allergens&&p.allergens.length?`<span style="font-size:14px"><b>Allergener:</b> ${esc(p.allergens.join(", "))}</span>`:""}${p.traces&&p.traces.length?`<span class="sub" style="font-size:13px">Kan inneholde spor av ${esc(p.traces.join(", "))}</span>`:""}</div>`:""}
     <div style="height:1px;background:#2E2321;margin-top:4px"></div>${whyBlock(a)}
+    ${p.id!=="custom"?nutBlock(p):""}
     ${r!=="Lav"&&p.id!=="custom"?`<div style="height:1px;background:#2E2321;margin-top:4px"></div><div class="lbl" style="color:#B5A8A5">Prøv heller</div>${alts.length?alts.map(x=>prodRow(x)).join(""):`<span class="sub" style="line-height:1.4">I appen hentes grønne ${esc(p.cat)} fra Open Food Facts. I demoen finnes ingen ennå.</span>`}`:""}
    </div></div>`;
 };
