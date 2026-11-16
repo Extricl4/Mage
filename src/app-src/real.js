@@ -76,11 +76,39 @@ async function fetchOFF(ean) {
     return j && j.status === 1 && j.product ? fromOFF(j.product, ean) : null;
   } catch (e) { if (e.status === 404) return null; throw e; }
 }
+function fromKassal(x, nutrition, ean) {
+  const nut = nutrition || x.nutrition || [];
+  const f = nut.find(n => n.code === "fett_totalt" || /^fett( totalt)?$/i.test(n.display_name || ""));
+  const fat = f && typeof f.amount === "number" ? f.amount : undefined;
+  const kcat = (x.category || []).map(c => c.name).join(" / ");
+  return { id: "e" + (ean || x.ean), ean: ean || x.ean, fat, kcat, brand: clean(x.brand || x.vendor || "").toUpperCase() || "UKJENT MERKE", name: clean(x.name) || "Ukjent navn",
+    size: x.weight ? x.weight + " " + (x.weight_unit || "") : "", cat: (x.category && x.category.length ? x.category[x.category.length - 1].name : "").toLowerCase(), cats: [],
+    img: x.image || "", src: "Kassalapp", ing: clean(x.ingredients), langNote: "", pack: "none", c1: "#2A2E33", c2: "#2A2E33" };
+}
+const kassalHeaders = () => ({ Authorization: "Bearer " + S.kassalKey, Accept: "application/json" });
 async function fetchKassal(ean) {
-  const j = await getJSON(`https://kassal.app/api/v1/products/ean/${ean}`, { headers: { Authorization: "Bearer " + S.kassalKey, Accept: "application/json" } });
-  const ps = (j && j.data && j.data.products) || []; const x = ps.find(q => q.ingredients) || ps[0];
-  if (!x) return null;
-  return { id: "e" + ean, ean, brand: clean(x.brand || x.vendor || "").toUpperCase() || "UKJENT MERKE", name: clean(x.name) || "Ukjent navn", size: x.weight ? x.weight + " " + (x.weight_unit || "") : "", cat: "", cats: [], img: x.image || "", src: "Kassalapp", ing: clean(x.ingredients), langNote: "", pack: "none", c1: "#2A2E33", c2: "#2A2E33" };
+  const j = await getJSON(`https://kassal.app/api/v1/products/ean/${ean}`, { headers: kassalHeaders() });
+  const d = j && j.data; const ps = (d && d.products) || []; if (!ps.length) return null;
+  const x = ps.find(q => q.ingredients) || ps[0];
+  return fromKassal(x, d.nutrition, ean);
+}
+async function searchKassal(q) {
+  const j = await getJSON(`https://kassal.app/api/v1/products?search=${encodeURIComponent(q)}&size=40&unique=1&exclude_without_ean=1`, { headers: kassalHeaders() }, 12000);
+  return (j.data || []).filter(x => x.ean).map(x => fromKassal(x, x.nutrition, x.ean));
+}
+/* merge two sources: keep the best of each field */
+function mergeProd(a, b) {
+  if (!a) return b; if (!b) return a;
+  const m = { ...a };
+  if (!m.ing && b.ing) { m.ing = b.ing; m.langNote = b.langNote; m.src = a.src + " + " + b.src; }
+  else if (m.langNote && b.ing && !b.langNote) { m.ing = b.ing; m.langNote = ""; m.src = b.src + " + " + a.src; }
+  if (m.fat === undefined && b.fat !== undefined) m.fat = b.fat;
+  if (!m.img && b.img) m.img = b.img;
+  if ((!m.name || m.name === "Ukjent navn") && b.name) m.name = b.name;
+  if ((!m.brand || m.brand === "UKJENT MERKE") && b.brand) m.brand = b.brand;
+  if (!m.kcat && b.kcat) m.kcat = b.kcat;
+  if (!m.size && b.size) m.size = b.size;
+  return m;
 }
 
 /* ---------- lookup after a scan ---------- */
@@ -93,7 +121,7 @@ async function lookup(raw) {
   go("henter");
   let p = null, failed = false;
   try { p = await fetchOFF(ean); } catch (e) { failed = true; }
-  if ((!p || !p.ing) && S.kassal && S.kassalKey) { try { const k = await fetchKassal(ean); if (k && (k.ing || !p)) p = k; } catch (e) {} }
+  if (S.kassal && S.kassalKey && (!p || !p.ing || p.langNote || p.fat === undefined)) { try { const k = await fetchKassal(ean); p = mergeProd(p, k); } catch (e) {} }
   if (S.view !== "henter" || S.looking !== ean) return;
   if (p && p.ing) { saveProd(p); addHistory(p.id); S.pid = p.id; S.pendingEan = ""; go("vare", false); return; }
   if (p) { S.pendingName = p.name; S.pendingBrand = p.brand; S.pendingImg = p.img; }
@@ -148,8 +176,9 @@ function offSearchSoon() {
     if (S.offDone[q]) return;
     S.offBusy = true; refreshLook();
     try {
-      const j = await getJSON(`${OFF}/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=24&fields=${F}&tagtype_0=countries&tag_contains_0=contains&tag_0=norway`, {}, 12000);
+      const j = await getJSON(`${OFF}/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=24&fields=${F}&tagtype_0=countries&tag_contains_0=contains&tag_0=norway`, {}, 12000).catch(() => ({ products: [] }));
       let found = (j.products || []).map(o => fromOFF(o)).filter(x => x.ean && x.ing);
+      if (S.kassal && S.kassalKey) { try { const k = await searchKassal(q); k.forEach(x => { const o = found.find(f => f.ean === x.ean); if (o) Object.assign(o, mergeProd(o, x)); else if (x.ing) found.push(x); }); } catch (e) {} }
       const no = found.filter(x => !x.langNote); if (no.length >= 3) found = no;   // prefer products with a Norwegian ingredient list
       found.forEach(x => { if (!PRODUCTS.some(p => p.id === x.id)) { x.tmp = true; PRODUCTS.push(x); } const p = PRODUCTS.find(p => p.id === x.id); p.sq = (p.sq || []).concat(q); });
       S.offDone[q] = true;

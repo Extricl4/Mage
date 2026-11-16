@@ -240,7 +240,9 @@ const prod = id => PRODUCTS.find(p=>p.id===id);
 const isLF = p => !!(p.lf||/laktosefri|laktoseredusert/i.test(p.name||""));
 const SWEET = /en:(sweet|sugary|confectioner|chocolate|candies|biscuits|cakes|pastries|desserts|ice-creams|yogurts|dairy-desserts|breakfast-cereals|beverages|sodas|juices|nectars|jams|fruit-preserves|sweet-spreads|sweeteners|milks|fermented-milk|cereal-bars|energy-drinks)/;
 const SAVOURY = /en:(meals|soups|sauces|meats|sausages|pizzas|crisps|salty-snacks|condiments|cheeses|seasonings|spices|fishes|seafood|sandwiches|savory|salads|dips|broths|ready)/;
-const isSweet = p => { const c=(p.cats||[]).join(" "); return !!c && SWEET.test(c) && !SAVOURY.test(c); };
+const SWEET_NO = /(godteri|sjokolade|kjeks|kake|dessert|\bis\b|iskrem|yoghurt|brus|saft|juice|syltetøy|frokostblanding|müsli|granola|drikke|melk|pålegg søtt|bakervarer søte|snacks søt)/;
+const SAVOURY_NO = /(middag|suppe|saus|pølse|kjøtt|pizza|chips|potetgull|krydder|fisk|ferdigmat|salat|dressing|ost\b|snacks salt)/;
+const isSweet = p => { const c=(p.cats||[]).join(" "), k=(p.kcat||"").toLowerCase(); if(c) return SWEET.test(c)&&!SAVOURY.test(c); if(k) return SWEET_NO.test(k)&&!SAVOURY_NO.test(k); return false; };
 const pRate = p => p.id==="custom"? p.a : analyse(p.ing||"",isLF(p),{sweet:isSweet(p)});
 /* purple heart: every counted ingredient is "Ja" or "Nøytral", at least one "Ja", nothing unknown */
 function gentleState(a){
@@ -251,21 +253,34 @@ function gentleState(a){
 }
 /* orange marker: can be hard on a sensitive stomach even when FODMAP is low (Haukeland: fat, strong food, caffeine, alcohol, carbonation) */
 const HTXT = {"Mye fett":"Fet mat fordøyes sakte og kan gi oppfylthet, oppblåsthet, ubehag og kvalme.","Kullsyre":"Kullsyre kan gi luft og oppblåsthet. Haukeland anbefaler å begrense det.","Alkohol":"Haukeland anbefaler å begrense alkohol ved IBS.","Koffein":"Haukeland anbefaler maks 3 kopper kaffe eller te med koffein om dagen ved IBS."};
+/* names of products that are typically hard on the stomach (used when nutrition data is missing) */
+const NAME_HARD = [
+ ["Mye fett",/\b(kjøttdeig|svinekjøttdeig|kjøttfarse|bacon|pølser?|wienerpølser?|grillpølser?|salami|pepperoni|servelat|ribbe|flesk|kremfløte|matfløte|fløte|rømme|seterrømme|crème fraîche|creme fraiche|smør|majones|remulade|aioli|bearnaise|potetgull|chips|pommes frites|sjokolade|iskrem|fløteis|leverpostei|postei|pizza|wienerbrød|croissant|smultring|donut|pesto|kremost|brie|camembert|cheddar|gulost|norvegia|jarlsberg|brunost|peanøttsmør|nøttemiks|peanøtter|kokosmelk)\b/],
+ ["Sterkt",/(chili|jalape|sriracha|sambal|tabasco|habanero|piri ?piri|vindaloo|ekstra sterk|extra hot|\bsterk\b|\bhot\b(?! ?dog))/],
+ ["Koffein",/(kaffe|espresso|cappuccino|\blatte\b|energidrikk|energy|\bcola\b|pepsi|monster|red bull|nocco|celsius|battery|\biste\b|matcha)/],
+ ["Alkohol",/(\bøl\b|\bpils\b|\bcider\b|\bvin\b|rusbrus|vodka|\bgin\b|whisky|akevitt|likør)/],
+ ["Kullsyre",/(\bbrus\b|\bcola\b|sprite|fanta|\bsolo\b|farris|sparkling|kullsyre|mineralvann|tonic|pepsi|7up|mozell|energidrikk|nocco|red bull|monster)/],
+];
+const LEAN = /(\blett|mager|karbonade|kylling|kalkun|light|fettredusert|\b0[,.]\d ?%|\b[1-5]([,.]\d)? ?%)/;
+const NO_ALC = /(alkoholfri|\b0[,.]0 ?%|zero alkohol|uten alkohol)/, NO_CAF = /(koffeinfri|decaf)/, NO_FIZZ = /(uten kullsyre|stille)/;
 function hardFlags(p){
   if(!p) return [];
-  const a=pRate(p), out=[], fat=(typeof p.fat==="number")?p.fat:null;
+  const a=pRate(p), out=[], fat=(typeof p.fat==="number")?p.fat:null, nm=(p.name||"").toLowerCase(), cats=((p.cats||[]).join(" ")+" "+(p.kcat||"")).toLowerCase();
   const add=(t,txt,alt)=>{ if(!out.some(o=>o.t===t)) out.push({t,txt,alt}); };
-  const walk=ns=>(ns||[]).forEach(n=>{ (n.rows||[]).forEach(r=>{ if(r.h&&r.h.length&&!(r.h[0]==="Mye fett"&&fat!==null)) add(r.h[0],r.h[1],r.h[2]); }); walk(n.kids); });
+  const skip = t => (t==="Alkohol"&&NO_ALC.test(nm))||(t==="Koffein"&&NO_CAF.test(nm))||(t==="Kullsyre"&&NO_FIZZ.test(nm));
+  const walk=ns=>(ns||[]).forEach(n=>{ (n.rows||[]).forEach(r=>{ if(r.h&&r.h.length&&!skip(r.h[0])&&!(r.h[0]==="Mye fett"&&(fat!==null||LEAN.test(nm)))) add(r.h[0],r.h[1],r.h[2]); }); walk(n.kids); });
   walk(a.tree);
-  if(fat!==null&&fat>=10) add("Mye fett", `${String(Math.round(fat*10)/10).replace(".",",")} g fett per 100 g. ${HTXT["Mye fett"]}`, /kjøttdeig/i.test(p.name||"")?"karbonadedeig":"");
-  const c=(p.cats||[]).join(" ");
-  if(/en:(carbonated-drinks|sodas|carbonated-waters)/.test(c)) add("Kullsyre",HTXT.Kullsyre,"vann");
-  if(/en:alcoholic-beverages/.test(c)) add("Alkohol",HTXT.Alkohol,"");
-  if(/en:(energy-drinks|coffees)/.test(c)) add("Koffein",HTXT.Koffein,"");
+  if(fat!==null&&fat>=10) add("Mye fett", `${String(Math.round(fat*10)/10).replace(".",",")} g fett per 100 g. ${HTXT["Mye fett"]}`, /kjøttdeig|farse/.test(nm)?"karbonadedeig":"");
+  NAME_HARD.forEach(([t,re])=>{ if(!re.test(nm)||skip(t)) return; if(t==="Mye fett"&&(fat!==null||LEAN.test(nm))) return;
+    add(t, t==="Mye fett" ? (/kjøttdeig|farse/.test(nm)?"Vanlig kjøttdeig har ofte 10–20 % fett. ":"")+HTXT["Mye fett"] : t==="Sterkt" ? "Sterk mat (capsaicin) kan gi magesmerter og diaré hos noen." : HTXT[t], /kjøttdeig|farse/.test(nm)?"karbonadedeig":t==="Kullsyre"?"vann":""); });
+  if(/en:(carbonated-drinks|sodas|carbonated-waters)|\bbrus\b|mineralvann/.test(cats)&&!skip("Kullsyre")) add("Kullsyre",HTXT.Kullsyre,"vann");
+  if(/en:alcoholic-beverages|\bøl\b|\bvin\b|brennevin|cider/.test(cats)&&!skip("Alkohol")) add("Alkohol",HTXT.Alkohol,"");
+  if(/en:(energy-drinks|coffees)|energidrikk|kaffe/.test(cats)&&!skip("Koffein")) add("Koffein",HTXT.Koffein,"");
   return out;
 }
 const rowHard = r => !!(r&&r.h&&r.h.length);
-const ingHard = i => i.p ? hardFlags(prod(i.p)).length>0 : rowHard(byName[i.r]);
+const COOKING_FAT = new Set(["rene oljer","hvitløksolje","smør"]);   // normal cooking amounts in recipes
+const ingHard = i => i.p ? hardFlags(prod(i.p)).length>0 : (rowHard(byName[i.r]) && !COOKING_FAT.has(i.r));
 const pHeart = p => { const a=pRate(p); return a.overall==="Lav" && gentleState(a)==="Ja" && !hardFlags(p).length; };
 function ingK(i){ if(i.p){ const pp=prod(i.p), a=pRate(pp); return a.overall==="Lav"?gentleState(a):"Nei"; } return byName[i.r].k; }
 const NO_HEART_CATS = ["Godteri","Kaker","Snacks"];
@@ -639,7 +654,7 @@ V.innst = () => {
   return `<div class="col g14"><h1>Innstillinger</h1>
   <div class="col g8"><span class="lbl">Mine triggere</span><div class="card chips" style="padding:12px">${tr}</div><span class="sub">Slår du av en gruppe, blir ingredienser som bare har den gruppen regnet som lave.</span></div>
   
-  <div class="col g8"><span class="lbl">Skanning</span><div class="card list">${sw("strict","Streng modus","Middels regnes som høy")}${sw("kassal","Bruk Kassalapp som reserve","Hvis Open Food Facts mangler varen")}</div></div>
+  <div class="col g8"><span class="lbl">Skanning</span><div class="card list">${sw("strict","Streng modus","Middels regnes som høy")}${sw("kassal","Bruk Kassalapp også","Flere norske varer, ingredienser og fett")}</div></div>
   <div class="col g8"><span class="lbl">Data</span><div class="card list">
    <a class="item" href="${SHEET_URL}" target="_blank" rel="noopener"><span class="grow" style="font-size:15px;font-weight:600">Rediger ingrediensliste</span><span style="color:var(--mute)">${I.chev}</span></a>
    <button class="item" data-act="go" data-arg="kilder"><span class="col grow" style="gap:1px"><span style="font-size:15px;font-weight:600">Kilder</span><span class="sub">Monash · Haukeland (NKFM) · Open Food Facts</span></span><span style="color:var(--mute)">${I.chev}</span></button>

@@ -489,3 +489,19 @@ HARD = {
  "kullsyre": ("Kullsyre", "Kullsyre kan gi luft og oppblåsthet. Haukeland anbefaler å begrense det.", "vann"),
  "brus uten fruktkonsentrat": ("Kullsyre", "Kullsyre kan gi luft og oppblåsthet. Haukeland anbefaler å begrense det.", "vann"),
 }
+
+NOTT = "Nøtter er fettrike (ca. 50 % fett). En liten neve er fint, store mengder kan bli tungt."
+OLJE = "Olje er rent fett. Vanlig mengde i matlaging er fint, men mye fett kan bli tungt for magen."
+HARD.update({
+ "kremost": ("Mye fett", FETT, ""),
+ "kremost med løk/hvitløk": ("Mye fett", FETT, ""),
+ "brunost": ("Mye fett", FETT, ""),
+ "pesto": ("Mye fett", FETT, ""),
+ "kokos": ("Mye fett", "Kokos er fettrik. " + FETT, ""),
+ "rene oljer": ("Mye fett", OLJE, ""),
+ "hvitløksolje": ("Mye fett", OLJE, ""),
+ "peanøtter": ("Mye fett", NOTT, ""), "valnøtter": ("Mye fett", NOTT, ""), "pekannøtter": ("Mye fett", NOTT, ""),
+ "paranøtter": ("Mye fett", NOTT, ""), "makadamianøtter": ("Mye fett", NOTT, ""), "mandler": ("Mye fett", NOTT, ""),
+ "hasselnøtter": ("Mye fett", NOTT, ""), "cashewnøtter": ("Mye fett", NOTT, ""), "pistasjnøtter": ("Mye fett", NOTT, ""),
+ "karripulver": ("Sterkt", "Karri kan være sterk. " + STERK, ""),
+})

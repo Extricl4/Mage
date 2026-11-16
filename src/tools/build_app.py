@@ -72,8 +72,8 @@ rep('<div class="card empty">Ingen varer i demoen matcher. I appen søkes det i 
 rep('<span class="sub">fra Open Food Facts</span>', '<span class="sub">${S.offBusy?"søker …":"fra Open Food Facts"}</span>')
 
 # ---- settings: Kassalapp key, about/update ----
-rep('${sw("kassal","Bruk Kassalapp som reserve","Hvis Open Food Facts mangler varen")}</div></div>',
-    '${sw("kassal","Bruk Kassalapp som reserve","Hvis Open Food Facts mangler varen")}${S.kassal?`<div style="padding:2px 14px 14px"><label class="col g6"><span class="sub">API-nøkkel fra kassal.app (gratis)</span><span class="search"><input id="kassalKey" value="${esc(S.kassalKey)}" placeholder="Lim inn nøkkelen" autocomplete="off" autocapitalize="off" spellcheck="false"></span></label></div>`:""}</div></div>')
+rep('${sw("kassal","Bruk Kassalapp også","Flere norske varer, ingredienser og fett")}</div></div>',
+    '${sw("kassal","Bruk Kassalapp også","Flere norske varer, ingredienser og fett")}${S.kassal?`<div style="padding:2px 14px 14px"><label class="col g6"><span class="sub">Gratis nøkkel: lag konto på kassal.app/api → «Generer API-nøkkel» → lim den inn her</span><span class="search"><input id="kassalKey" value="${esc(S.kassalKey)}" placeholder="Lim inn nøkkelen" autocomplete="off" autocapitalize="off" spellcheck="false"></span></label></div>`:""}</div></div>')
 rep('''>${S.clearArm?"Trykk igjen for å tømme historikken":"Tøm historikk"}</button>
   </div></div></div>`;''', '''>${S.clearArm?"Trykk igjen for å tømme historikken":"Tøm historikk"}</button>
   </div></div>
