@@ -21,6 +21,7 @@ def load(src):
         elif "Haukeland" in source: chk = "Haukeland"
         elif "NHI" in source: chk = "Haukeland (via NHI)"
         elif "Monash" in source: chk = "Monash"
+        elif "appen" in source: chk = "Appens vurdering (små mengder)"
         else: chk = "Ingen kilde – grå for sikkerhet"
         out.append({"n": name, "s": keep, "c": cat, "f": ftype, "r": rating, "ok": ok, "note": note,
                     "src": source, "k": k, "b": m.BYTT.get(name, []), "chk": chk, "h": list(getattr(m, "HARD", {}).get(name, ()))})

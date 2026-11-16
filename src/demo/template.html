@@ -144,9 +144,29 @@ const TERMS = [];
 ROWS.forEach(r=>{[r.n,...r.s].forEach(t=>{const k=t.toLowerCase().trim(); if(k) TERMS.push({t:k,r});});});
 TERMS.sort((a,b)=>b.t.length-a.t.length);
 const WC = /[a-z0-9æøåéèäöüàá]/;
-const norm = s => s.toLowerCase().replace(/\s+-\s+/g,"").replace(/\be\s+(\d{3,4}[a-z]?)\b/g,"e$1").replace(/\s+/g," ").trim();
+const norm = s => s.toLowerCase().replace(/&quot;?|[_*®™²³]/g," ").replace(/\d+([.,]\d+)?\s*%/g," ").replace(/\s+-\s+/g,"").replace(/\be\s+(\d{3,4}[a-z]?)\b/g,"e$1").replace(/\s+/g," ").trim();
 function groupsOf(f){const g=[];const l=f.toLowerCase();if(l.includes("fruktan"))g.push("Fruktaner");if(l.includes("laktose"))g.push("Laktose");if(l.includes("fruktose"))g.push("Fruktose");if(l.includes("polyol"))g.push("Polyoler");if(f.includes("GOS"))g.push("GOS");return g;}
 function eff(row){let r=row.r;if(r==="Lav"||r==="Ikke vurdert")return r;const g=groupsOf(row.f);if(g.length&&!g.some(x=>S.triggers[x]))return "Lav";if(S.strict&&r==="Middels")return "Høy";return r;}
+/* Norwegian compound words: "fullkornshvetemel" → hvetemel, "makrellfilet" → makrell. Risky stems always count (fail-safe). */
+const STEMS = ["hvete","hvede","spelt","rug","bygg","hvitløk","hvidløg","løk","løg","honning","eple","pære","inulin","sikori","agave","melk","mælk","fløte"];
+const SUFFIX_OK = /^(filet|fileter|kjøtt|pulver|mel|ekstrakt|konsentrat|juice|puré|pure|biter|flak|gryn|kjerner|olje|fett|saft|granulat|fiber|fibre|terninger|skiver|pasta|krem|kjøtt|lever|stykker)$/;
+const stemRow = {};
+function compound(name){
+  const n = norm(name).replace(/[^a-z0-9æøåéèäöü ]/g,"").trim();
+  if(!n || n.includes(" ") || n.length<6 || /\d/.test(n)) return [];
+  const out = [];
+  for(const {t,r} of TERMS){ if(t.length>=4 && !t.includes(" ") && n.startsWith(t) && SUFFIX_OK.test(n.slice(t.length).replace(/^s/,""))){ const rest=n.slice(t.length); if(!(r.c==="Frukt og bær"&&/(konsentrat|juice|saft|pulver)$/.test(rest))) out.push(r); break; } }
+  if(!out.length) for(const {t,r} of TERMS){ if(t.length>=4 && !t.includes(" ") && n.length-t.length>=3 && n.endsWith(t)){ out.push(r); break; } }
+  for(const st of STEMS){
+    if(!n.includes(st)) continue;
+    if((st==="løk"||st==="løg")&&/(gressløk|vårløkgrønt|løkgrønt|hvitløk|hvidløg)/.test(n)&&!(st==="løk"&&/[^t]løk/.test(n.replace(/(gressløk|vårløkgrønt|løkgrønt|hvitløk)/g,"")))) continue;
+    if((st==="melk"||st==="mælk"||st==="fløte")&&/(laktosefri|kokos|mandel|havre|soya|ris|kjerne|syre)/.test(n)) continue;
+    if(st==="eple"&&/(granateple|eplesyre)/.test(n)) continue;
+    if(!(st in stemRow)){ const m=TERMS.find(x=>x.t===st); stemRow[st]=m?m.r:null; }
+    if(stemRow[st]&&!out.includes(stemRow[st])) out.push(stemRow[st]);
+  }
+  return out;
+}
 function match(name,lf){
   let s=" "+norm(name)+" "; const found=[];
   for(const {t,r} of TERMS){
@@ -157,6 +177,7 @@ function match(name,lf){
     }
   }
   if(!found.length&&/\be\d{3,4}[a-z]?\b/.test(s)) found.push(byName["andre E-nummer"]);
+  if(!found.length) compound(name).forEach(r=>{ if(r&&!found.includes(r)) found.push(r); });
   const l=name.toLowerCase();
   if(lf||/laktosefri|laktoseredusert/.test(l)) return found.map(r=> (r.f==="Laktose"&&r.c==="Melk og meieri")?byName["laktosefrie meieriprodukter"]:r);
   return found;
